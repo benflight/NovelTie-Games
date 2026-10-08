@@ -77,7 +77,6 @@
       }
       .iconBtn:active{ transform:translateY(2px); box-shadow:inset 0 1px 0 rgba(255,255,255,.2); }
       .iconBtn svg{ width:22px; height:22px; }
-      .iconBtn[hidden]{ display:none; }
       .bigBtn{
         border:none; border-radius:16px; padding:14px 26px; font-size:20px; font-weight:600;
         background:linear-gradient(#3ecf6e,#23a84e); color:#fff;
@@ -304,7 +303,13 @@
         font-size:calc(var(--cw)*.16); font-weight:700; padding:1px 8px; border-radius:999px;
       }
       .card.plate .need i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
-      .card.dragSrc{ opacity:0; }
+      .card.dragging{
+        opacity:1 !important;
+        box-shadow:0 14px 26px rgba(0,0,0,.42), 0 4px 8px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px var(--card-line) !important;
+      }
+      .card.dragging.crownCard{
+        box-shadow:0 14px 26px rgba(0,0,0,.42), 0 4px 8px rgba(0,0,0,.28), 0 0 0 1px rgba(240,185,62,.35), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 2px var(--gold), inset 0 0 0 4px #fff3d6, 0 0 12px rgba(240,185,62,.4) !important;
+      }
       .card.selected{ box-shadow:0 0 0 3px #ffe066, 0 6px 14px rgba(0,0,0,.45) !important; transform:translateY(-5px); z-index:30 !important; }
       .card.hintSrc{ animation:hintPulse .55s infinite alternate; }
       .card.hintDst{ animation:hintPulse .55s infinite alternate; }
@@ -314,9 +319,6 @@
       .card.popIn{ animation:popIn .25s ease; }
       @keyframes popIn{ 0%{ transform:scale(.8);} 60%{ transform:scale(1.07);} 100%{ transform:scale(1);} }
 
-      #dragLayer{ position:fixed; left:0; top:0; z-index:200; pointer-events:none; display:none; }
-      #dragLayer .card{ box-shadow:0 14px 26px rgba(0,0,0,.42), 0 4px 8px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px var(--card-line); }
-      #dragLayer .card.crownCard{ box-shadow:0 14px 26px rgba(0,0,0,.42), 0 4px 8px rgba(0,0,0,.28), 0 0 0 1px rgba(240,185,62,.35), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 2px var(--gold), inset 0 0 0 4px #fff3d6, 0 0 12px rgba(240,185,62,.4); }
 
       /* ---------- boosters ---------- */
       .boostBar{ display:flex; justify-content:center; gap:14px; padding-top:2px; }
@@ -407,9 +409,6 @@
         <div class="mapTop">
           <div class="coinPill" id="mapCoins"></div>
           <div class="mapBtns">
-            <button class="iconBtn" id="installBtn" aria-label="Install app" hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
-            </button>
             <button class="iconBtn" id="soundBtn" aria-label="Toggle sound"></button>
             <button class="iconBtn" id="howBtn" aria-label="How to play">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9.2 9a2.9 2.9 0 1 1 4.4 2.4c-.9.5-1.6 1-1.6 2.1"/><circle cx="12" cy="17.6" r=".4" fill="currentColor"/></svg>
@@ -446,7 +445,6 @@
         </div>
       </section>
 
-      <div id="dragLayer"></div>
       <div id="toast" role="status"></div>
 
       <!-- ======= INTRO ======= -->
@@ -1454,7 +1452,6 @@
 
     /* ================= drag & drop + tap ================= */
     let drag = null, stockTap = false, lastTap = { cid:null, t:0 };
-    const dragLayer = $("#dragLayer");
     function resolveTarget(el){
       if(!el || !el.closest) return null;
       const f = el.closest('[data-dz="found"]');
@@ -1489,9 +1486,13 @@
       document.querySelectorAll(".dropOk,.dropBad").forEach(e => e.classList.remove("dropOk","dropBad"));
     }
     function cleanupDrag(){
-      dragLayer.style.display = "none";
-      dragLayer.innerHTML = "";
-      document.querySelectorAll(".dragSrc").forEach(e => e.classList.remove("dragSrc"));
+      if(drag && drag.els){
+        drag.els.forEach(el => {
+          el.style.transform = "";
+          el.style.zIndex = "";
+          el.classList.remove("dragging");
+        });
+      }
       clearDropMarks();
     }
     function beginDrag(e){
@@ -1513,24 +1514,15 @@
             drag.ids = ids.concat(pile.slice().reverse());
         }
       }
-      const firstEl = document.querySelector('.card[data-cid="' + ids[0] + '"]');
-      if(!firstEl){ drag = null; return; }
-      const rect = firstEl.getBoundingClientRect();
-      drag.rect = rect;
-      dragLayer.innerHTML = "";
-      const m = measure();
-      const overUp = Math.round(m.ch * 0.36);
-      ids.forEach((id, i) => {
-        const c = cardHTML(st, id, {});
-        c.style.top = (i * overUp) + "px";
-        c.style.left = "0";
-        dragLayer.appendChild(c);
+      const els = [];
+      drag.ids.forEach(id => {
+        document.querySelectorAll('.card[data-cid="' + id + '"]').forEach(el => els.push(el));
       });
-      dragLayer.style.display = "block";
-      dragLayer.style.width = m.cw + "px";
-      dragLayer.style.transform = "translate(" + rect.left + "px," + rect.top + "px)";
-      ids.forEach(id => {
-        document.querySelectorAll('.card[data-cid="' + id + '"]').forEach(el => el.classList.add("dragSrc"));
+      if(!els.length){ drag = null; return; }
+      drag.els = els;
+      els.forEach((el, i) => {
+        el.classList.add("dragging");
+        el.style.zIndex = 200 + i;
       });
       drag.active = true;
       buzz(5);
@@ -1575,7 +1567,10 @@
         if(!drag) return;
       }
       const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
-      dragLayer.style.transform = "translate(" + (drag.rect.left + dx) + "px," + (drag.rect.top + dy) + "px)";
+      if(drag.els){
+        const t = "translate(" + dx + "px," + dy + "px)";
+        for(const el of drag.els) el.style.transform = t;
+      }
       const under = document.elementFromPoint(e.clientX, e.clientY);
       const target = resolveTarget(under);
       clearDropMarks();
@@ -1725,29 +1720,6 @@
     showScreen("map");
     // debug/test hook (used by automated verification; harmless in play)
     window.__wp = { generateLevel, solve, levelCfg, FAMILIES, applyMove, enumMoves, canDrop, isWin, getState: () => G, session: S };
-</script>
-<script>
-/* In-page install button. Uses beforeinstallprompt, whose "already installed"
-   check is scope-accurate (this app's own identity), unlike Chrome's menu which
-   reports "already installed" whenever any installed app's scope covers the page. */
-(function(){
-  var btn = document.getElementById('installBtn');
-  var deferred = null;
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(function(){});
-  }
-  window.addEventListener('beforeinstallprompt', function(e){
-    e.preventDefault();
-    deferred = e;
-    btn.hidden = false;
-  });
-  btn.addEventListener('click', function(){
-    if(!deferred) return;
-    deferred.prompt();
-    deferred.userChoice.then(function(){ deferred = null; btn.hidden = true; });
-  });
-  window.addEventListener('appinstalled', function(){ deferred = null; btn.hidden = true; });
-})();
 </script>
 </body>
 </html>
