@@ -1,0 +1,1753 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0e8f3c" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0c7f34" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Solitaire Word Match" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="assets/manifest.json" />
+    <link rel="apple-touch-icon" href="assets/icon-180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+    <title>Solitaire Word Match</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root{
+        color-scheme: light dark;
+        --felt:#0e8f3c;
+        --felt-deep:#075e28;
+        --felt-edge:#04401a;
+        --panel:#fff7e9;
+        --panel-dim:#f3e8d2;
+        --ink:#43301c;
+        --ink-soft:#7d6547;
+        --cream:#fffaf0;
+        --card-line:#e3d5b8;
+        --gold:#f0b93e;
+        --gold-deep:#c99327;
+        --good:#2f9e5f;
+        --bad:#c0453e;
+        --slot:rgba(0,0,0,.22);
+        --cw:64px;
+        --ch:92px;
+      }
+      @media (prefers-color-scheme: dark){
+        :root{
+          --felt:#0c7f34;
+          --felt-deep:#054f20;
+          --felt-edge:#033313;
+          --panel:#f7ecd7;
+        }
+      }
+      html,body{ height:100%; overflow:hidden; overscroll-behavior:none; }
+      body{
+        margin:0;
+        font-family:"Fredoka",system-ui,sans-serif;
+        color:var(--ink);
+        background:
+          radial-gradient(120% 90% at 50% 0%, var(--felt) 0%, var(--felt-deep) 78%, var(--felt-edge) 100%),
+          repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 2px, rgba(255,255,255,0) 2px 4px),
+          repeating-linear-gradient(90deg, rgba(0,0,0,.022) 0 2px, rgba(0,0,0,0) 2px 4px),
+          var(--felt-deep);
+        -webkit-tap-highlight-color:transparent;
+        overscroll-behavior:none;
+      }
+      [hidden]{ display:none !important; }
+      button{ font-family:inherit; cursor:pointer; }
+      #app{ height:100dvh; max-height:100dvh; display:flex; flex-direction:column; max-width:560px; margin:0 auto; position:relative; overflow-y:auto; overflow-x:hidden; overscroll-behavior:none; }
+
+      /* ---------- shared bits ---------- */
+      .coinPill{
+        display:inline-flex; align-items:center; gap:6px;
+        background:rgba(0,0,0,.34); color:#ffe9b0; font-weight:600;
+        padding:5px 12px 5px 7px; border-radius:999px; font-size:17px; line-height:1;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
+      }
+      .coinPill svg{ width:20px; height:20px; color:var(--gold); }
+      .iconBtn{
+        width:42px; height:42px; border:none; border-radius:13px;
+        background:rgba(0,0,0,.30); color:#fff; display:grid; place-items:center;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 2px 0 rgba(0,0,0,.25);
+      }
+      .iconBtn:active{ transform:translateY(2px); box-shadow:inset 0 1px 0 rgba(255,255,255,.2); }
+      .iconBtn svg{ width:22px; height:22px; }
+      .iconBtn[hidden]{ display:none; }
+      .bigBtn{
+        border:none; border-radius:16px; padding:14px 26px; font-size:20px; font-weight:600;
+        background:linear-gradient(#3ecf6e,#23a84e); color:#fff;
+        box-shadow:0 4px 0 #177a37, 0 6px 14px rgba(0,0,0,.3);
+      }
+      .bigBtn:active{ transform:translateY(3px); box-shadow:0 1px 0 #177a37; }
+      .bigBtn.alt{ background:linear-gradient(#fdfdfd,#e9e2d2); color:var(--ink); box-shadow:0 4px 0 #b8ab8d, 0 6px 14px rgba(0,0,0,.25); }
+      .bigBtn.alt:active{ box-shadow:0 1px 0 #b8ab8d; }
+      .bigBtn:disabled{ filter:grayscale(.7) opacity(.55); }
+
+      /* ---------- map screen ---------- */
+      #mapScreen{ padding:14px 14px 30px; }
+      .mapTop{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+      .mapBtns{ display:flex; gap:8px; }
+      .region{ margin-top:20px; }
+      .regionHead{ display:flex; align-items:baseline; gap:8px; color:#fff; margin:0 2px 10px; }
+      .regionHead h2{ font-size:19px; margin:0; font-weight:600; letter-spacing:.02em; text-shadow:0 2px 4px rgba(0,0,0,.35); }
+      .regionHead span{ font-size:13px; font-weight:600; padding:2px 9px; border-radius:999px; color:#fff; }
+      .diff-Easy{ background:#3d9d63; } .diff-Normal{ background:#3d7ea6; }
+      .diff-Hard{ background:#d07a2d; } .diff-Expert{ background:#b03a48; }
+      .lvlGrid{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; }
+      .lvlBtn{
+        border:none; border-radius:14px; padding:9px 2px 7px; position:relative;
+        background:linear-gradient(#fffdf6,#f1e6cb); color:var(--ink);
+        box-shadow:0 3px 0 #c9b98f, 0 4px 8px rgba(0,0,0,.25);
+        display:flex; flex-direction:column; align-items:center; gap:2px;
+      }
+      .lvlBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 #c9b98f; }
+      .lvlBtn b{ font-size:19px; font-weight:600; line-height:1; }
+      .lvlBtn .mini{ font-size:9.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+      .lvlBtn .stars{ font-size:11px; color:var(--gold-deep); letter-spacing:1px; min-height:13px; line-height:1; }
+      .lvlBtn .feat{ position:absolute; top:-6px; right:-4px; display:flex; gap:2px; }
+      .lvlBtn .feat i{ width:16px; height:16px; border-radius:50%; display:grid; place-items:center; color:#fff; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+      .lvlBtn .feat svg{ width:10px; height:10px; }
+      .mapNote{ color:rgba(255,255,255,.75); font-size:13px; text-align:center; margin:22px 8px 0; }
+
+      /* ---------- game screen ---------- */
+      #gameScreen{ flex:1; display:flex; flex-direction:column; padding:10px 10px 8px; gap:8px; }
+      .hud{ display:flex; align-items:center; gap:8px; }
+      .hudLvl{ color:#fff; font-weight:600; font-size:17px; text-shadow:0 2px 4px rgba(0,0,0,.4); white-space:nowrap; }
+      .hudLvl small{ display:block; font-size:11px; font-weight:500; opacity:.85; letter-spacing:.05em; text-transform:uppercase; }
+      .hudSpacer{ flex:1; }
+      .midRow{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+      .movesRibbon{
+        background:linear-gradient(#2fbf5f,#22a04b); color:#083d1d; min-width:86px;
+        padding:7px 10px 13px; text-align:center; position:relative;
+        clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%);
+        filter:drop-shadow(0 3px 3px rgba(0,0,0,.3));
+      }
+      .movesRibbon span{ display:block; font-size:12.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; border-bottom:1px solid rgba(8,61,29,.35); padding-bottom:2px; }
+      .movesRibbon b{ font-size:27px; font-weight:700; line-height:1.05; }
+      .movesRibbon.low b{ color:#ffd9d4; animation:pulse .7s infinite alternate; }
+      @keyframes pulse{ from{ transform:scale(1);} to{ transform:scale(1.14);} }
+      .deckArea{ display:flex; gap:10px; align-items:flex-start; }
+      #waste{ position:relative; width:calc(var(--cw) + 26px); height:var(--ch); }
+      #stock{ position:relative; width:var(--cw); height:var(--ch); }
+      .stockCount{
+        position:absolute; top:-7px; right:-7px; z-index:5; background:#fff; color:var(--ink);
+        font-size:12px; font-weight:700; min-width:22px; height:22px; border-radius:999px;
+        display:grid; place-items:center; box-shadow:0 2px 5px rgba(0,0,0,.35); padding:0 5px;
+      }
+      .recycleHint{
+        position:absolute; inset:0; display:grid; place-items:center; color:rgba(255,255,255,.85);
+        border:2px dashed rgba(255,255,255,.5); border-radius:9px;
+      }
+      .recycleHint svg{ width:26px; height:26px; }
+
+      #foundRow{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+      .fslot{
+        position:relative; height:var(--ch); border-radius:9px;
+        background:linear-gradient(180deg,#0b5f2d,#07451f);
+        box-shadow:inset 0 2px 7px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.06);
+        display:grid; place-items:center;
+      }
+      .fslot .ghostCrown{ width:52%; color:rgba(120,230,160,.28); }
+      .fslot .fcard{ position:absolute; inset:0; }
+      .fslot .prog{
+        position:absolute; right:3px; bottom:3px; z-index:4; background:rgba(0,0,0,.55); color:#fff;
+        font-size:11px; font-weight:700; padding:1px 7px; border-radius:999px;
+      }
+      .fslot .nextUp{
+        position:absolute; left:0; right:0; bottom:3px; z-index:4; text-align:center;
+        font-size:10px; font-weight:600; color:#ffe9b0; text-shadow:0 1px 3px rgba(0,0,0,.8);
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 3px;
+      }
+      .fslot.done{ box-shadow:inset 0 2px 6px rgba(0,0,0,.45), 0 0 0 2px var(--gold), 0 0 14px rgba(240,185,62,.55); }
+      .fslot.dropOk, .col.dropOk .card.topCard, .card.dropOk{ box-shadow:0 0 0 3px #7dffb0, 0 0 16px rgba(125,255,176,.8) !important; }
+      .fslot.dropBad{ box-shadow:0 0 0 3px #ff8d84 !important; }
+
+      #boardWrap{ flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding:2px 0 6px; scrollbar-width:none; overscroll-behavior:contain; }
+      #boardWrap::-webkit-scrollbar{ display:none; }
+      #board{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; align-items:start; }
+      .col{ position:relative; min-height:var(--ch); border-radius:9px; }
+      .col:empty::after, .col.emptyCol::after{
+        content:""; position:absolute; inset:0; height:var(--ch); border-radius:9px;
+        background:rgba(6,60,28,.45); box-shadow:inset 0 2px 5px rgba(0,0,0,.35);
+      }
+
+      /* ---------- cards ---------- */
+      .card{
+        position:absolute; left:0; top:0; width:var(--cw); height:var(--ch);
+        border-radius:11px; user-select:none; -webkit-user-select:none; touch-action:none;
+        box-shadow:0 3px 7px rgba(0,0,0,.34), 0 1px 2px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px var(--card-line);
+        background:linear-gradient(180deg,#fffefa 0%,#fff8e6 52%,#f8ecd0 100%);
+        overflow:hidden;
+        isolation:isolate;
+      }
+      .card::before{
+        content:""; position:absolute; inset:0; z-index:3; pointer-events:none;
+        background:linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,.1) 26%, rgba(255,255,255,0) 48%);
+        border-radius:inherit;
+      }
+      .card::after{
+        content:""; position:absolute; left:5px; right:5px; top:4px; height:32%; z-index:3; pointer-events:none;
+        background:linear-gradient(180deg, rgba(255,255,255,.48), rgba(255,255,255,0));
+        border-radius:999px; opacity:.5;
+      }
+      .col .card, #waste .card{ position:absolute; }
+      .fslot .card, #stock .card{ position:absolute; inset:0; }
+      .card.back{
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,0) 42%),
+          repeating-conic-gradient(from 45deg, #63b1fa 0% 25%, #2c8cf1 0% 50%);
+        background-size:auto, 24px 24px;
+        box-shadow:0 3px 7px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.55), inset 0 0 0 3px #ffffff, inset 0 0 0 5px #1f7fe8;
+      }
+      .card.back .peek{
+        position:absolute; left:50%; bottom:5px; transform:translateX(-50%);
+        width:24px; height:24px;
+        display:grid; place-items:center;
+        filter:drop-shadow(0 0 2px rgba(255,255,255,.95)) drop-shadow(0 1px 1px rgba(0,0,0,.35));
+      }
+      .card.back .peek svg{ width:19px; height:19px; }
+      .card .band{
+        height:32%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; padding:2px 4px; color:#fff;
+        position:relative; overflow:hidden; z-index:1;
+        box-shadow:inset 0 -1px 0 rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.35);
+      }
+      .card .band::before{
+        content:""; position:absolute; inset:0; pointer-events:none;
+        background:linear-gradient(180deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,.1) 48%, rgba(0,0,0,.12) 100%);
+      }
+      .card .band::after{
+        content:""; position:absolute; left:7px; right:7px; top:4px; height:46%; pointer-events:none;
+        background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0));
+        border-radius:999px; opacity:.7;
+      }
+      .card .bandArt{
+        position:relative; z-index:1; flex:none;
+        width:calc(var(--cw)*.54); height:calc(var(--cw)*.54);
+        max-width:40px; max-height:40px; min-width:28px; min-height:28px;
+        border-radius:50%;
+        background:radial-gradient(circle at 32% 26%, #ffffff 0%, #fff8dc 52%, #ffe9a8 100%);
+        box-shadow:0 2px 6px rgba(0,0,0,.24), inset 0 1px 0 #fff, inset 0 -2px 5px rgba(0,0,0,.08), 0 0 0 1px rgba(255,255,255,.35);
+        display:grid; place-items:center;
+      }
+      .card .bandArt svg{ width:68%; height:68%; filter:drop-shadow(0 1px 0 rgba(255,255,255,.6)); }
+      .card .word{
+        height:62%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; text-align:center;
+        font-size:calc(var(--cw)*.235); font-weight:600; color:var(--ink); line-height:1.04; padding:0 3px;
+        overflow-wrap:break-word; position:relative; z-index:2;
+        text-shadow:0 1px 0 rgba(255,255,255,.75);
+      }
+      .footArt{ height:38%; box-sizing:border-box; position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
+      .footArt .dots{ margin-bottom:3px; }
+      .artTab{
+        width:52%; max-width:42px; height:72%; min-height:19px;
+        border-radius:999px 999px 0 0; display:grid; place-items:center;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.65), inset 0 -2px 4px rgba(0,0,0,.05);
+      }
+      .artTab svg{ width:56%; height:56%; margin-bottom:1px; filter:drop-shadow(0 1px 0 rgba(255,255,255,.55)); }
+      .artTab.crownTab{ background:linear-gradient(180deg,#ffd968,#f0b93e); color:#8a5a00; }
+      .artTab.seqTab{ background:#f7e3b0; color:#a4762a; }
+      .card .foot{ height:26%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:2px; position:relative; z-index:2; overflow:hidden; }
+      .card .seqBadge{ display:flex; flex-direction:column; align-items:center; gap:1px; color:#a4762a; }
+      .card .seqBadge svg{ width:calc(var(--cw)*.23); height:calc(var(--cw)*.23); filter:drop-shadow(0 1px 0 rgba(255,255,255,.6)); }
+      .card .dots{ display:flex; gap:2.5px; }
+      .card .dots i{ width:5px; height:5px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff8dc, #e2d3ac); box-shadow:inset 0 0 0 1px #c9b586, 0 1px 1px rgba(0,0,0,.08); }
+      .card .dots i.on{ background:radial-gradient(circle at 35% 30%, #ffe98a, var(--gold)); box-shadow:inset 0 0 0 1px var(--gold-deep), 0 1px 2px rgba(0,0,0,.15); }
+      .card.crownCard{ box-shadow:0 3px 7px rgba(0,0,0,.34), 0 0 0 1px rgba(240,185,62,.35), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 2px var(--gold), inset 0 0 0 4px #fff3d6, 0 0 10px rgba(240,185,62,.35); }
+      .card .crownBadge{
+        position:absolute; top:3px; left:3px; z-index:4;
+        width:calc(var(--cw)*.27); height:calc(var(--cw)*.27);
+        background:radial-gradient(circle at 35% 30%, #ffe98a, #f0b93e);
+        border-radius:50%; display:grid; place-items:center; color:#8a5a00;
+        box-shadow:0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 #fff;
+      }
+      .card .crownBadge svg{ width:72%; height:72%; }
+      .card.keyCard .band{ height:26%; }
+      .card.keyCard .keyArt{ height:50%; display:grid; place-items:center; position:relative; z-index:2; }
+      .card.keyCard .keyArt svg{ width:62%; height:62%; filter:drop-shadow(0 3px 4px rgba(0,0,0,.18)); }
+      .card.keyCard .word{ height:24%; font-size:calc(var(--cw)*.17); }
+      .card.halfCard{ padding:0; }
+      .halfZone{ height:50%; position:relative; overflow:hidden; display:grid; place-items:center; }
+      .halfZone::before{
+        content:""; position:absolute; inset:0; pointer-events:none; z-index:1;
+        background:linear-gradient(180deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,.06) 45%, rgba(0,0,0,.08) 100%);
+      }
+      .halfZone.missing{
+        background:
+          repeating-conic-gradient(#d8d2c2 0% 25%, #f4efe2 0% 50%) 0 0/16px 16px;
+      }
+      .halfZone .halfIcon{ position:absolute; left:50%; width:78%; height:200%; transform:translateX(-50%); display:grid; place-items:center; z-index:2; filter:drop-shadow(0 2px 3px rgba(0,0,0,.2)); }
+      .halfZone.topH .halfIcon{ top:0; align-items:start; }
+      .halfZone.botH .halfIcon{ bottom:0; align-items:end; }
+      .halfZone .halfIcon svg{ width:100%; height:50%; }
+      .halfWord{
+        position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:4;
+        background:linear-gradient(180deg,#fffefa,#fff3d6); border:1.5px dashed #b9a67f; color:var(--ink);
+        box-shadow:0 2px 5px rgba(0,0,0,.16), inset 0 1px 0 #fff;
+        font-size:calc(var(--cw)*.15); font-weight:600; padding:1px 7px; border-radius:999px; white-space:nowrap;
+        max-width:92%; overflow:hidden; text-overflow:ellipsis;
+      }
+      .card.plate{
+        background:linear-gradient(160deg,#eef2fb 0%,#c3d2ec 42%,#a3b8da 70%,#8ba3cc 100%);
+        box-shadow:0 3px 7px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.8), inset 0 0 0 3px var(--plate,#c0453e), inset 0 0 0 5px rgba(255,255,255,.55), inset 0 -8px 14px rgba(0,0,0,.08);
+        display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:var(--plate,#c0453e);
+      }
+      .card.plate .rivet{ position:absolute; width:7px; height:7px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#e8eef4,#7c8fa3); box-shadow:inset 0 -1px 2px rgba(0,0,0,.4); }
+      .card.plate .lockArt{ width:56%; color:var(--plate,#c0453e); filter:drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+      .card.plate .need{
+        display:inline-flex; align-items:center; gap:4px; background:rgba(255,251,240,.95); color:#5a4632;
+        box-shadow:0 1px 3px rgba(0,0,0,.25);
+        font-size:calc(var(--cw)*.16); font-weight:700; padding:1px 8px; border-radius:999px;
+      }
+      .card.plate .need i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+      .card.dragSrc{ opacity:0; }
+      .card.selected{ box-shadow:0 0 0 3px #ffe066, 0 6px 14px rgba(0,0,0,.45) !important; transform:translateY(-5px); z-index:30 !important; }
+      .card.hintSrc{ animation:hintPulse .55s infinite alternate; }
+      .card.hintDst{ animation:hintPulse .55s infinite alternate; }
+      @keyframes hintPulse{ from{ box-shadow:0 0 0 2px #ffe066, 0 0 4px rgba(255,224,102,.5);} to{ box-shadow:0 0 0 4px #ffe066, 0 0 18px rgba(255,224,102,.95);} }
+      .card.flipIn{ animation:flipIn .34s ease; }
+      @keyframes flipIn{ 0%{ transform:rotateY(88deg) scale(.94);} 100%{ transform:rotateY(0) scale(1);} }
+      .card.popIn{ animation:popIn .25s ease; }
+      @keyframes popIn{ 0%{ transform:scale(.8);} 60%{ transform:scale(1.07);} 100%{ transform:scale(1);} }
+
+      #dragLayer{ position:fixed; left:0; top:0; z-index:200; pointer-events:none; display:none; }
+      #dragLayer .card{ box-shadow:0 14px 26px rgba(0,0,0,.42), 0 4px 8px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px var(--card-line); }
+      #dragLayer .card.crownCard{ box-shadow:0 14px 26px rgba(0,0,0,.42), 0 4px 8px rgba(0,0,0,.28), 0 0 0 1px rgba(240,185,62,.35), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 2px var(--gold), inset 0 0 0 4px #fff3d6, 0 0 12px rgba(240,185,62,.4); }
+
+      /* ---------- boosters ---------- */
+      .boostBar{ display:flex; justify-content:center; gap:14px; padding-top:2px; }
+      .boost{
+        position:relative; width:62px; height:56px; border:none; border-radius:18px; color:#fff;
+        display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+        box-shadow:0 3px 0 rgba(0,0,0,.35), 0 5px 10px rgba(0,0,0,.3), inset 0 -3px 0 rgba(0,0,0,.15), inset 0 2px 0 rgba(255,255,255,.45);
+        text-shadow:0 1px 2px rgba(0,0,0,.25);
+      }
+      .boost::before{
+        content:""; position:absolute; left:6px; right:6px; top:4px; height:45%; border-radius:999px;
+        background:linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,0)); pointer-events:none;
+      }
+      .boost:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.15), inset 0 2px 0 rgba(255,255,255,.45); }
+      .boost svg{ width:26px; height:26px; position:relative; }
+      .boost small{ font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; position:relative; }
+      .boost.hint{ background:linear-gradient(#6fb0f7,#3673d6); }
+      .boost.undo{ background:linear-gradient(#6fb0f7,#3673d6); }
+      .boost.shuffle{ background:linear-gradient(#ffc94f,#ef9a1e); }
+      .boost .cnt{
+        position:absolute; top:-7px; right:-7px; background:#fff; color:var(--ink);
+        font-size:12px; font-weight:700; min-width:22px; height:22px; border-radius:999px;
+        display:grid; place-items:center; box-shadow:0 2px 5px rgba(0,0,0,.35); padding:0 5px;
+      }
+      .boost .cnt.buy{ background:var(--gold); color:#5d4300; font-size:10.5px; display:flex; gap:2px; align-items:center; }
+      .boost .cnt.buy svg{ width:11px; height:11px; }
+
+      /* ---------- overlays ---------- */
+      .overlay{
+        position:fixed; inset:0; z-index:300; background:rgba(4,26,14,.55);
+        display:flex; align-items:center; justify-content:center; padding:18px;
+      }
+      .sheet{
+        background:var(--panel); border-radius:20px; padding:20px 18px 18px; width:100%; max-width:380px;
+        box-shadow:0 14px 40px rgba(0,0,0,.5); max-height:88dvh; overflow-y:auto; overscroll-behavior:contain; position:relative;
+      }
+      .sheet h2{ margin:0 0 4px; font-size:24px; font-weight:600; text-align:center; }
+      .sheet .sub{ text-align:center; color:var(--ink-soft); font-size:14px; margin:0 0 12px; }
+      .sheet .rowBtns{ display:flex; flex-direction:column; gap:9px; margin-top:14px; }
+      .sheet .rowBtns .bigBtn{ width:100%; }
+      .diffTag{ display:inline-block; padding:2px 12px; border-radius:999px; color:#fff; font-size:13px; font-weight:600; vertical-align:middle; }
+      .famChips{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:10px 0 4px; }
+      .famChip{
+        display:inline-flex; align-items:center; gap:5px; background:#fff; border:1.5px solid var(--card-line);
+        border-radius:999px; padding:3px 10px 3px 5px; font-size:13px; font-weight:600;
+      }
+      .famChip i{ width:20px; height:20px; border-radius:50%; display:grid; place-items:center; color:#fff; }
+      .famChip svg{ width:13px; height:13px; }
+      .featList{ margin:10px auto 0; display:flex; flex-direction:column; gap:6px; max-width:300px; }
+      .featList div{ display:flex; gap:8px; align-items:center; font-size:14px; background:#fff; border:1.5px solid var(--card-line); border-radius:11px; padding:6px 10px; }
+      .featList svg{ width:18px; height:18px; flex:none; }
+      .winStars{ text-align:center; margin:6px 0 2px; }
+      .winStars svg{ width:46px; height:46px; color:#e8ddc4; margin:0 3px; }
+      .winStars svg.on{ color:var(--gold); animation:starPop .45s ease backwards; }
+      .winStars svg.on path{ fill:var(--gold); }
+      .winStars svg.off{ color:#c9b586; }
+      .winStars svg.off path{ fill:#eadfc6; }
+      .fslot.hintDst{ animation:hintPulse .55s infinite alternate; }
+      .winStars svg.on:nth-child(2){ animation-delay:.15s; } .winStars svg.on:nth-child(3){ animation-delay:.3s; }
+      @keyframes starPop{ 0%{ transform:scale(0) rotate(-40deg);} 70%{ transform:scale(1.3) rotate(8deg);} 100%{ transform:scale(1);} }
+      .rewardLine{ text-align:center; font-size:16px; font-weight:600; margin-top:6px; }
+      .rewardLine .coinPill{ font-size:15px; }
+      .howRow{ display:flex; gap:11px; align-items:flex-start; margin:0 0 13px; }
+      .howRow .howIco{ width:40px; height:40px; flex:none; border-radius:12px; display:grid; place-items:center; color:#fff; }
+      .howRow .howIco svg{ width:23px; height:23px; }
+      .howRow p{ margin:0; font-size:14px; line-height:1.45; }
+      .howRow p b{ display:block; font-size:15px; }
+      .closeX{
+        position:absolute; top:10px; right:10px; width:34px; height:34px; border:none; border-radius:50%;
+        background:#efe3cb; color:var(--ink); font-size:17px; font-weight:700; display:grid; place-items:center;
+      }
+      #toast{
+        position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(20px); z-index:250;
+        background:rgba(20,24,20,.92); color:#fff; font-size:14.5px; font-weight:500;
+        padding:9px 16px; border-radius:999px; opacity:0; pointer-events:none; transition:all .25s ease;
+        max-width:88vw; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,.4);
+      }
+      #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+      @media (prefers-reduced-motion: reduce){
+        .card.flipIn,.card.popIn,.winStars svg.on,.card.hintSrc,.card.hintDst,.movesRibbon.low b{ animation:none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- ======= LEVEL MAP ======= -->
+      <section id="mapScreen">
+        <div class="mapTop">
+          <div class="coinPill" id="mapCoins"></div>
+          <div class="mapBtns">
+            <button class="iconBtn" id="installBtn" aria-label="Install app" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
+            </button>
+            <button class="iconBtn" id="soundBtn" aria-label="Toggle sound"></button>
+            <button class="iconBtn" id="howBtn" aria-label="How to play">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9.2 9a2.9 2.9 0 1 1 4.4 2.4c-.9.5-1.6 1-1.6 2.1"/><circle cx="12" cy="17.6" r=".4" fill="currentColor"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="levelGrid"></div>
+        <p class="mapNote">Drag matching word cards together, crown cards open the top slots, and every card home wins the level. No ads, no timers — just the puzzle.</p>
+      </section>
+
+      <!-- ======= GAME ======= -->
+      <section id="gameScreen" hidden>
+        <div class="hud">
+          <button class="iconBtn" id="menuBtn" aria-label="Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <div class="hudLvl" id="hudLvl">Level 1<small>Easy</small></div>
+          <div class="hudSpacer"></div>
+          <div class="coinPill" id="gameCoins"></div>
+        </div>
+        <div class="midRow">
+          <div class="movesRibbon" id="movesRibbon"><span>Moves</span><b id="movesNum">0</b></div>
+          <div class="deckArea">
+            <div id="waste" data-dz="waste"></div>
+            <div id="stock"></div>
+          </div>
+        </div>
+        <div id="foundRow"></div>
+        <div id="boardWrap"><div id="board"></div></div>
+        <div class="boostBar">
+          <button class="boost hint" id="hintBtn" aria-label="Hint"></button>
+          <button class="boost undo" id="undoBtn" aria-label="Undo"></button>
+          <button class="boost shuffle" id="shuffleBtn" aria-label="Shuffle deck"></button>
+        </div>
+      </section>
+
+      <div id="dragLayer"></div>
+      <div id="toast" role="status"></div>
+
+      <!-- ======= INTRO ======= -->
+      <div class="overlay" id="introOverlay" hidden>
+        <div class="sheet">
+          <button class="closeX" data-close="introOverlay" aria-label="Close">✕</button>
+          <h2 id="introTitle">Level 1</h2>
+          <p class="sub"><span class="diffTag" id="introDiff">Easy</span> &nbsp;<span id="introMoves"></span></p>
+          <div class="famChips" id="introFams"></div>
+          <div class="featList" id="introFeats"></div>
+          <div class="rowBtns">
+            <button class="bigBtn" id="playBtn">Play</button>
+            <button class="bigBtn alt" id="introHow">How to play</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======= WIN ======= -->
+      <div class="overlay" id="winOverlay" hidden>
+        <div class="sheet">
+          <h2>Level Complete!</h2>
+          <div class="winStars" id="winStars"></div>
+          <p class="rewardLine" id="winReward"></p>
+          <div class="rowBtns">
+            <button class="bigBtn" id="nextBtn">Next Level</button>
+            <button class="bigBtn alt" id="replayBtn">Play Again</button>
+            <button class="bigBtn alt" id="winMapBtn">Level Map</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======= FAIL ======= -->
+      <div class="overlay" id="failOverlay" hidden>
+        <div class="sheet">
+          <h2>Out of Moves</h2>
+          <p class="sub">So close — the cards are still on the table.</p>
+          <div class="rowBtns">
+            <button class="bigBtn" id="buyMovesBtn">+20 Moves</button>
+            <button class="bigBtn alt" id="retryBtn">Restart Level</button>
+            <button class="bigBtn alt" id="failMapBtn">Level Map</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======= PAUSE ======= -->
+      <div class="overlay" id="pauseOverlay" hidden>
+        <div class="sheet">
+          <h2>Paused</h2>
+          <div class="rowBtns">
+            <button class="bigBtn" id="resumeBtn">Keep Playing</button>
+            <button class="bigBtn alt" id="restartBtn">Restart Level</button>
+            <button class="bigBtn alt" id="pauseHowBtn">How to Play</button>
+            <button class="bigBtn alt" id="pauseSoundBtn">Sound: On</button>
+            <button class="bigBtn alt" id="quitBtn">Level Map</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======= HOW TO ======= -->
+      <div class="overlay" id="howOverlay" hidden>
+        <div class="sheet">
+          <button class="closeX" data-close="howOverlay" aria-label="Close">✕</button>
+          <h2>How to Play</h2>
+          <p class="sub">Find things that match, and put them on each other.</p>
+          <div id="howBody"></div>
+          <div class="rowBtns"><button class="bigBtn" data-close="howOverlay">Got it</button></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    "use strict";
+    /* ================= utilities ================= */
+    const $ = s => document.querySelector(s);
+    const clone = o => JSON.parse(JSON.stringify(o));
+    function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+    const buzz = p => { try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} };
+
+    /* ================= icons (original, hand-drawn) ================= */
+    const IC = {
+      crown:'<path d="M3.5 17.5h17M4.5 17.5L3.4 9.2 8.2 12 12 6l3.8 6 4.8-2.8-1.1 8.3z" fill="currentColor"/>',
+      coin:'<circle cx="12" cy="12" r="8.6"/><path d="M8.2 15.4h7.6M8.6 15.4 7.7 10l2.9 2.1L12 9.2l1.4 2.9L16.3 10l-.9 5.4z" fill="currentColor" stroke="none"/>',
+      bars:'<path d="M4 20h16"/><path d="M6 20v-4.5M12 20V10M18 20V5"/>',
+      sizes:'<circle cx="6" cy="17" r="2.2"/><circle cx="12" cy="13.5" r="3.3"/><circle cx="18.5" cy="9" r="4.2"/>',
+      sunrise:'<path d="M4.5 18a7.5 7.5 0 0 1 15 0"/><path d="M2.5 18h19M12 6.5v-3M5.2 9 3.8 6.4M18.8 9l1.4-2.6"/>',
+      sprout:'<path d="M12 21v-8"/><path d="M12 13.5C12 9.8 9.2 7.6 5 7.6c0 3.7 2.8 5.9 7 5.9zM12 11c0-3.2 2.3-5 6-5 0 3.2-2.3 5-6 5z"/>',
+      wave:'<path d="M2 9.5c2.8-3.4 5.6-3.4 8.4 0 2.7 3.3 5.5 3.3 8.2 0"/><path d="M2 15.5c2.8-3.4 5.6-3.4 8.4 0 2.7 3.3 5.5 3.3 8.2 0"/>',
+      sun:'<circle cx="12" cy="12" r="3.8"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19"/>',
+      flower:'<circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="12" cy="6.6" r="2.5"/><circle cx="16.8" cy="10.2" r="2.5"/><circle cx="15.4" cy="15.8" r="2.5"/><circle cx="8.6" cy="15.8" r="2.5"/><circle cx="7.2" cy="10.2" r="2.5"/>',
+      fork:'<path d="M7 3v6.5M4.6 3v3.8a2.4 2.4 0 0 0 4.8 0V3M7 9.5V21"/><path d="M16.5 3c-1.8 2.4-1.8 6.5 0 8.5V21M16.5 11.5V21"/>',
+      note:'<path d="M9.5 18.5V6L19 4v11.5"/><circle cx="6.8" cy="18.5" r="2.7"/><circle cx="16.3" cy="15.5" r="2.7"/>',
+      barn:'<path d="M4 21V10.5L12 4l8 6.5V21"/><path d="M3 21h18"/><path d="M9.8 21v-5.2h4.4V21M9.8 10.8l4.4 4M14.2 10.8l-4.4 4"/>',
+      crescent:'<path d="M19.8 15.6A8.4 8.4 0 1 1 8.4 4.2a6.8 6.8 0 0 0 11.4 11.4z"/>',
+      snow:'<path d="M12 2.5v19M3.8 7.5l16.4 9.5M20.2 7.5 3.8 17"/><path d="M12 2.5 9.8 5M12 2.5 14.2 5M12 21.5 9.8 19M12 21.5l2.2-2.5"/>',
+      apple:'<path d="M12 7.2c-1.4-2-4.8-2.4-6.6.4C3.6 10.9 5.4 20 8.2 20c1.4 0 2-.6 3.8-.6s2.4.6 3.8.6c2.8 0 4.6-9.1 2.8-12.4-1.8-2.8-5.2-2.4-6.6-.4z"/><path d="M12 7.2c0-2.2 1-3.6 3-4.2"/>',
+      hammer:'<path d="M13.4 4.2 19.8 10.6l-2.1 2.1-6.4-6.4z"/><path d="M11.8 8.2 4.4 15.6a1.8 1.8 0 0 0 2.5 2.5l7.4-7.4"/>',
+      rainbow:'<path d="M4 19a8 8 0 0 1 16 0"/><path d="M7.5 19a4.5 4.5 0 0 1 9 0"/><path d="M2 19h20"/>',
+      compass:'<circle cx="12" cy="12" r="8.8"/><path d="M15.4 8.6l-1.9 4.9-4.9 1.9 1.9-4.9z"/><circle cx="12" cy="12" r=".9" fill="currentColor"/>',
+      cake:'<path d="M4 21h16"/><path d="M5 21v-5.5h14V21"/><path d="M5 15.5c2.2 1.6 4.3-1.6 7 0 2.7 1.6 4.8-1.6 7 0"/><path d="M12 11.5V8.5"/><circle cx="12" cy="6.6" r="1.4"/>',
+        egg:'<path d="M12 3.2c2.9 0 5 3.9 5 7.8 0 4.1-2.2 6.8-5 6.8s-5-2.7-5-6.8c0-3.9 2.1-7.8 5-7.8z"/><path d="M5 20.5c2 1.2 4.5-1 7 0 2.5 1 5-1.2 7 0"/>',
+      steps:'<path d="M3.5 20.5h5.5v-5.5h5.5V9.5H20"/><path d="M17.5 6.8 20 9.5l-2.5 2.7" />',
+      lock:'<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.2" r="1.5" fill="currentColor" stroke="none"/>',
+      key:'<circle cx="8" cy="15" r="4"/><path d="M11 12 19.5 3.5M16.5 6.5l2.4 2.4M13.8 9.2l2.2 2.2"/>',
+      bulb:'<path d="M9.3 17.5h5.4M10.2 20.5h3.6"/><path d="M12 3a5.8 5.8 0 0 1 3.3 10.5c-.6.45-.95 1-1.05 2h-4.5c-.1-1-.45-1.55-1.05-2A5.8 5.8 0 0 1 12 3z"/>',
+      undo:'<path d="M8.5 5.5 4.8 9.2l3.7 3.7"/><path d="M4.8 9.2h8.7a5.8 5.8 0 0 1 0 11.6h-3"/>',
+      shuffle:'<path d="M3 6h4.2L17 18h4"/><path d="M3 18h4.2l2.4-2.9M14.3 8.9 17 6h4"/><path d="M18.2 3.8 20.4 6l-2.2 2.2M18.2 15.8l2.2 2.2-2.2 2.2"/>',
+      star:'<path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.6l-5.2 2.7 1-5.8L3.5 9.4l5.9-.8z"/>',
+      recycle:'<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.7 3.4v4h-4"/>',
+      sound:'<path d="M4 10v4h3.5L12 18.5v-13L7.5 10H4z" fill="currentColor" stroke="none"/><path d="M15.5 9.5a4 4 0 0 1 0 5M18 7a7.4 7.4 0 0 1 0 10"/>',
+      mute:'<path d="M4 10v4h3.5L12 18.5v-13L7.5 10H4z" fill="currentColor" stroke="none"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
+      check:'<path d="M4.5 12.5 10 18 19.5 6.5"/>',
+      half:'<rect x="4" y="5" width="7" height="14" rx="1.5" fill="currentColor" stroke="none"/><rect x="13" y="5" width="7" height="14" rx="1.5" stroke-dasharray="3.5 3"/>',
+      play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor"/>'
+    };
+    function svgIcon(name, sw){
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(sw||1.9)+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[name]+'</svg>';
+    }
+
+    /* ================= word families (original sets) ================= */
+    // seq families: crown is rank 0, members must follow in listed order.
+    const FAMILIES = [
+      { id:"numbers", label:"Big Numbers", crown:"Thousand", seq:true,  hue:"#c99327", icon:"bars",    members:["Million","Billion","Trillion"] },
+      { id:"sizes",   label:"Sizes",       crown:"Small",    seq:true,  hue:"#2e8b8b", icon:"sizes",   members:["Medium","Large","Giant"] },
+      { id:"day",     label:"One Day",     crown:"Dawn",     seq:true,  hue:"#dd7f2e", icon:"sunrise", members:["Morning","Noon","Dusk","Night"] },
+      { id:"plant",   label:"Growing",     crown:"Seed",     seq:true,  hue:"#4d9b4d", icon:"sprout",  members:["Sprout","Bloom","Tree"] },
+      { id:"royalty", label:"Royalty",     crown:"King",     seq:false, hue:"#b03a48", icon:"crown",   members:["Queen","Prince","Knight","Castle"] },
+      { id:"ocean",   label:"Ocean",       crown:"Ocean",    seq:false, hue:"#2f6fb2", icon:"wave",    members:["Wave","Shell","Coral","Pearl"] },
+      { id:"sky",     label:"Sky",         crown:"Sun",      seq:false, hue:"#4a90c2", icon:"sun",     members:["Cloud","Rainbow","Storm","Star"] },
+      { id:"garden",  label:"Garden",      crown:"Garden",   seq:false, hue:"#c65b7c", icon:"flower",  members:["Rose","Tulip","Daisy","Fern"] },
+      { id:"kitchen", label:"Kitchen",     crown:"Chef",     seq:false, hue:"#9a6a41", icon:"fork",    members:["Knife","Fork","Spoon","Pan"] },
+      { id:"music",   label:"Music",       crown:"Song",     seq:false, hue:"#7456a0", icon:"note",    members:["Drum","Flute","Harp","Bell"] },
+      { id:"farm",    label:"Farm",        crown:"Barn",     seq:false, hue:"#a8542f", icon:"barn",    members:["Cow","Pig","Hen","Horse"] },
+      { id:"space",   label:"Space",       crown:"Rocket",   seq:false, hue:"#3f5f9e", icon:"crescent",members:["Moon","Comet","Planet","Orbit"] },
+      { id:"winter",  label:"Winter",      crown:"Winter",   seq:false, hue:"#5f9ec4", icon:"snow",    members:["Snow","Ice","Sled","Scarf"] },
+      { id:"orchard", label:"Orchard",     crown:"Orchard",  seq:false, hue:"#c0453e", icon:"apple",   members:["Apple","Pear","Peach","Plum"] },
+      { id:"tools",   label:"Toolbox",     crown:"Toolbox",  seq:false, hue:"#5f7184", icon:"hammer",  members:["Hammer","Wrench","Nail","Saw"] },
+      { id:"colors",  label:"Colors",      crown:"Rainbow",  seq:false, hue:"#d96f4e", icon:"rainbow", members:["Red","Amber","Green","Violet"] },
+      { id:"travel",  label:"Journey",     crown:"Journey",  seq:false, hue:"#7a8b3d", icon:"compass", members:["Map","Compass","Ticket","Train"] },
+      { id:"bakery",  label:"Bakery",      crown:"Bakery",   seq:false, hue:"#b5654d", icon:"cake",    members:["Cake","Cookie","Pie","Tart"] },
+      { id:"birds",   label:"Birds",       crown:"Nest",     seq:false, hue:"#6f9e7a", icon:"egg",     members:["Owl","Robin","Heron","Finch"] }
+    ];
+    const FAM = {}; FAMILIES.forEach(f => FAM[f.id] = f);
+    const LOCK_COLORS = [
+      { id:"red",    hex:"#c0453e", name:"red" },
+      { id:"violet", hex:"#7456a0", name:"purple" },
+      { id:"gold",   hex:"#d9a441", name:"gold" },
+      { id:"teal",   hex:"#2e8b8b", name:"teal" }
+    ];
+    const lockColor = id => LOCK_COLORS.find(c => c.id === id) || LOCK_COLORS[0];
+
+    /* ================= level configuration ================= */
+    const TOTAL_LEVELS = 30;
+    function diffOf(n){ return n <= 6 ? "Easy" : n <= 14 ? "Normal" : n <= 22 ? "Hard" : "Expert"; }
+    const REGIONS = [
+      { name:"Sunny Meadows", from:1,  to:6 },
+      { name:"Riverbend",     from:7,  to:14 },
+      { name:"Highwood",      from:15, to:22 },
+      { name:"Crown Peaks",   from:23, to:30 }
+    ];
+    function levelCfg(n){
+      const famCount   = n < 3 ? 2 : n < 7 ? 3 : n < 15 ? 4 : 5;
+      const membersPer = n < 5 ? 3 : 4;
+      const seqCount   = n < 4 ? 0 : n < 16 ? 1 : 2;
+      const locks      = n < 7 ? 0 : n < 13 ? 1 : n < 23 ? 2 : 3;
+      const halves     = n < 10 ? 0 : n < 20 ? 1 : 2;
+      return { n, famCount, membersPer, seqCount, locks, halves, diff: diffOf(n) };
+    }
+
+    /* ================= card registry & state helpers ================= */
+    let REG = {};      // id -> static card data (rebuilt per level)
+    let FAMTOTAL = {}; // famId -> total cards to bank (crown + members)
+    function eff(st, id){
+      const r = REG[id]; if(!r) return { kind:"member" };
+      const f = st.form[id] || r.kind;
+      if(r.kind === "half" && f === "member") return { kind:"member", fam:r.fam, word:r.whole, rank:r.wrank };
+      return { kind:r.kind, fam:r.fam, word:r.word, rank:r.rank, color:r.color, pair:r.pair, side:r.side };
+    }
+    const topId = (st, ci) => { const c = st.cols[ci]; return c.length ? c[c.length-1] : null; };
+    function isFaceUp(st, ci, idx){ const id = st.cols[ci][idx]; return idx >= st.down[ci] && !st.locked[id]; }
+    function flipExposed(st){
+      const flipped = [];
+      for(let ci=0; ci<st.cols.length; ci++){
+        const c = st.cols[ci]; if(!c.length) continue;
+        const last = c[c.length-1];
+        if(!st.locked[last] && st.down[ci] > c.length-1){ st.down[ci] = c.length-1; flipped.push(last); }
+      }
+      return flipped;
+    }
+    function dragCards(st, drag){
+      if(drag.zone === "waste") return st.waste.length ? [st.waste[st.waste.length-1]] : [];
+      return st.cols[drag.col].slice(drag.idx);
+    }
+    function isWin(st){
+      return Object.keys(FAMTOTAL).every(f => (st.banked[f]||[]).length >= FAMTOTAL[f]);
+    }
+
+    /* ================= move rules (shared by UI, hint, solver) ================= */
+    function depositable(st, fam, e){
+      if(e.kind !== "member" || e.fam !== fam) return false;
+      if(FAM[fam].seq) return e.rank === (st.banked[fam]||[]).length;
+      return true;
+    }
+    function canDrop(st, drag, target){
+      const cards = dragCards(st, drag);
+      if(!cards.length) return { ok:false };
+      const effs = cards.map(id => eff(st, id));
+      const b = effs[0];
+      if(target.zone === "found"){
+        const fam = st.found[target.slot];
+        if(!fam){
+          if(b.kind !== "crown") return { ok:false, reason: b.kind === "member" ? (FAM[b.fam].label + " needs its crown card first") : "Only a crown card opens a slot" };
+          // crown sitting on a pile of its own family: the whole group moves
+          // together, flipping so the crown lands on the bottom
+          if(drag.zone === "col" && cards.length === 1 && drag.idx === st.cols[drag.col].length - 1){
+            const ci = drag.col, colArr = st.cols[ci], pile = [];
+            for(let j = drag.idx - 1; j >= 0; j--){
+              if(j < st.down[ci] || st.locked[colArr[j]]) break;
+              const e = eff(st, colArr[j]);
+              if(e.kind !== "member" || e.fam !== b.fam) break;
+              pile.unshift(colArr[j]);
+            }
+            if(pile.length){
+              const inOrder = !FAM[b.fam].seq || pile.every((id, i) => eff(st, id).rank === i + 1);
+              if(inOrder) return { ok:true, move:{ kind:"bankPile", src:drag, col:ci, from:drag.idx - pile.length, slot:target.slot, fam:b.fam, ids:pile, top:cards[0] } };
+              return { ok:false, reason:"Sequence: the pile under “" + b.word + "” has to start with “" + FAM[b.fam].members[0] + "” to move as a group" };
+            }
+          }
+          let count = 1;
+          while(count < effs.length && depositable(st, b.fam, effs[count])) count++;
+          return { ok:true, move:{ kind:"bank", src:drag, slot:target.slot, fam:b.fam, count } };
+        }
+        let count = 0;
+        while(count < effs.length && depositable(st, fam, effs[count])) count++;
+        if(count > 0) return { ok:true, move:{ kind:"bank", src:drag, slot:target.slot, fam, count } };
+        if(b.kind === "key") return { ok:false, reason:"Keys only open locks" };
+        if(b.kind === "half") return { ok:false, reason:"Join that half with its match first" };
+        if(b.fam === fam && FAM[fam].seq){
+          const L = (st.banked[fam]||[]).length;
+          const need = L === 0 ? FAM[fam].crown : FAM[fam].members[L-1];
+          return { ok:false, reason:"Sequence: “" + need + "” goes next" };
+        }
+        return { ok:false, reason:"That belongs to " + FAM[b.fam].label };
+      }
+      if(target.zone === "col"){
+        const ci = target.col;
+        if(drag.zone === "col" && drag.col === ci) return { ok:false };
+        const c = st.cols[ci], tid = c.length ? c[c.length-1] : null;
+        if(tid && st.locked[tid]){
+          if(cards.length === 1 && b.kind === "key"){
+            if(b.color === st.locked[tid]) return { ok:true, move:{ kind:"unlock", src:drag, lockCard:tid } };
+            return { ok:false, reason:"That lock needs a " + lockColor(st.locked[tid]).name + " key" };
+          }
+          return { ok:false, reason:"Locked — find the " + lockColor(st.locked[tid]).name + " key" };
+        }
+        if(!tid) return { ok:true, move:{ kind:"stack", src:drag, col:ci } };
+        if(!isFaceUp(st, ci, c.length-1)) return { ok:false };
+        const t = eff(st, tid);
+        if(cards.length === 1 && b.kind === "half" && t.kind === "half" && b.pair === t.pair)
+          return { ok:true, move:{ kind:"merge", src:drag, targetHalf:tid } };
+        if(b.kind === "key") return { ok:false, reason:"Keys only open locks" };
+        if(b.kind === "crown"){
+          // a crown may sit on top of a pile of its own family
+          if(cards.length === 1 && t.kind === "member" && t.fam === b.fam)
+            return { ok:true, move:{ kind:"stack", src:drag, col:ci } };
+          return { ok:false, reason:"Crown cards go in the top slots — or onto a pile of their own family" };
+        }
+        if(t.kind === "key" || t.kind === "half") return { ok:false, reason:"Can't stack on that card" };
+        if(t.kind === "crown") return { ok:false, reason:"Put the “" + t.word + "” card in a top slot before stacking on it" };
+        if(b.fam !== t.fam) return { ok:false, reason:"“" + b.word + "” doesn't match “" + t.word + "”" };
+        if(FAM[b.fam].seq && b.rank !== t.rank + 1){
+          const prev = t.rank === 0 ? FAM[b.fam].crown : FAM[b.fam].members[t.rank-1];
+          return { ok:false, reason:"Sequence: “" + b.word + "” can't follow “" + t.word + "” yet" };
+        }
+        return { ok:true, move:{ kind:"stack", src:drag, col:ci } };
+      }
+      if(target.zone === "waste"){
+        if(!st.waste.length) return { ok:false };
+        const tid = st.waste[st.waste.length-1], t = eff(st, tid);
+        if(cards.length === 1 && b.kind === "half" && t.kind === "half" && b.pair === t.pair)
+          return { ok:true, move:{ kind:"merge", src:drag, targetHalf:tid } };
+        return { ok:false };
+      }
+      return { ok:false };
+    }
+    function removeFromSrc(st, src, count){
+      if(src.zone === "waste"){ st.waste.splice(st.waste.length - count, count); return; }
+      st.cols[src.col].splice(src.idx, count === undefined ? st.cols[src.col].length - src.idx : count);
+    }
+    function applyMove(st, mv){
+      if(mv.kind === "flip"){
+        if(st.stock.length) st.waste.push(st.stock.pop());
+        else if(st.waste.length){ st.stock = st.waste.slice().reverse(); st.waste = []; }
+        return [];
+      }
+      if(mv.kind === "stack"){
+        const run = dragCards(st, mv.src);
+        removeFromSrc(st, mv.src, run.length);
+        st.cols[mv.col].push.apply(st.cols[mv.col], run);
+        return flipExposed(st);
+      }
+      if(mv.kind === "bank"){
+        const taken = dragCards(st, mv.src).slice(0, mv.count);
+        removeFromSrc(st, mv.src, mv.count);
+        if(!st.banked[mv.fam]) st.banked[mv.fam] = [];
+        if(!st.found[mv.slot] && eff(st, taken[0]).kind === "crown") st.found[mv.slot] = mv.fam;
+        st.banked[mv.fam].push.apply(st.banked[mv.fam], taken);
+        return flipExposed(st);
+      }
+      if(mv.kind === "bankPile"){
+        // ids are the pile bottom→top; the crown flips underneath them
+        st.cols[mv.col].splice(mv.from, mv.ids.length + 1);
+        if(!st.banked[mv.fam]) st.banked[mv.fam] = [];
+        st.found[mv.slot] = mv.fam;
+        st.banked[mv.fam].push(mv.top);
+        st.banked[mv.fam].push.apply(st.banked[mv.fam], mv.ids);
+        return flipExposed(st);
+      }
+      if(mv.kind === "unlock"){
+        removeFromSrc(st, mv.src, 1);
+        delete st.locked[mv.lockCard];
+        return flipExposed(st);
+      }
+      if(mv.kind === "merge"){
+        removeFromSrc(st, mv.src, 1);
+        st.form[mv.targetHalf] = "member";
+        return flipExposed(st);
+      }
+      return [];
+    }
+    function enumMoves(st, prune){
+      const moves = [];
+      const drags = [];
+      if(st.waste.length) drags.push({ zone:"waste" });
+      for(let ci=0; ci<st.cols.length; ci++){
+        const c = st.cols[ci];
+        for(let idx=st.down[ci]; idx<c.length; idx++){
+          if(!isFaceUp(st, ci, idx)) continue;
+          let clean = true;
+          for(let j=idx; j<c.length; j++) if(st.locked[c[j]]){ clean = false; break; }
+          if(clean) drags.push({ zone:"col", col:ci, idx });
+        }
+      }
+      const targets = [];
+      for(let s=0; s<5; s++) targets.push({ zone:"found", slot:s });
+      for(let ci=0; ci<st.cols.length; ci++) targets.push({ zone:"col", col:ci });
+      targets.push({ zone:"waste" });
+      for(const d of drags){
+        for(const t of targets){
+          const r = canDrop(st, d, t);
+          if(!r.ok) continue;
+          const mv = r.move;
+          if(prune && mv.kind === "stack" && d.zone === "col"){
+            const srcLen = st.cols[d.col].length;
+            if(st.cols[mv.col].length === 0 && d.idx === 0) continue;               // whole column -> empty: pointless
+            if(st.cols[mv.col].length === 0 && d.idx === st.down[d.col] && st.down[d.col] === 0) continue;
+            if(mv.col === d.col) continue;
+            void srcLen;
+          }
+          mv.prio = (mv.kind === "bank" || mv.kind === "bankPile") ? 0 : mv.kind === "unlock" ? 1 : mv.kind === "merge" ? 2
+                  : (mv.kind === "stack" && d.zone === "col" && d.idx === st.down[d.col] && st.down[d.col] > 0) ? 3 : 4;
+          moves.push(mv);
+        }
+      }
+      moves.sort((a,b) => a.prio - b.prio);
+      if(st.stock.length || st.waste.length) moves.push({ kind:"flip", prio:5 });
+      return moves;
+    }
+
+    /* ================= solver (deal verification) ================= */
+    function stateKey(st){
+      return JSON.stringify([st.cols, st.down, st.stock, st.waste, st.found, st.banked, st.locked, st.form]);
+    }
+    function solve(st0, cap, deadline){
+      if(isWin(st0)) return [];
+      const visited = new Set();
+      let nodes = 0;
+      function dfs(st, depth){
+        if(isWin(st)) return [];
+        if(depth > 420 || nodes++ > cap) return null;
+        if(deadline && (nodes & 1023) === 0 && Date.now() > deadline) return null;
+        const k = stateKey(st);
+        if(visited.has(k)) return null;
+        visited.add(k);
+        const moves = enumMoves(st, true);
+        for(const mv of moves){
+          const child = clone(st);
+          applyMove(child, mv);
+          const r = dfs(child, depth+1);
+          if(r) return [mv].concat(r);
+        }
+        return null;
+      }
+      return dfs(clone(st0), 0);
+    }
+
+    /* ================= deal building ================= */
+    function buildCards(cfg, rng){
+      REG = {}; FAMTOTAL = {};
+      let seqPool = FAMILIES.filter(f => f.seq), otherPool = FAMILIES.filter(f => !f.seq);
+      const pick = arr => arr.splice(Math.floor(rng()*arr.length), 1)[0];
+      const fams = [];
+      for(let i=0; i<cfg.seqCount && seqPool.length; i++) fams.push(pick(seqPool));
+      const rest = otherPool.concat(seqPool);
+      while(fams.length < cfg.famCount && rest.length) fams.push(pick(rest));
+      const cards = [];
+      let uid = 0;
+      const nid = () => "c" + (uid++);
+      for(const fam of fams){
+        const members = fam.seq ? fam.members.slice(0, cfg.membersPer)
+                                : fam.members.slice().sort(() => rng()-.5).slice(0, cfg.membersPer);
+        const cid = nid();
+        REG[cid] = { kind:"crown", fam:fam.id, word:fam.crown, rank:0 };
+        cards.push(cid);
+        members.forEach((w, i) => {
+          const id = nid();
+          REG[id] = { kind:"member", fam:fam.id, word:w, rank:i+1 };
+          cards.push(id);
+        });
+        FAMTOTAL[fam.id] = 1 + members.length;
+      }
+      return { cards, fams, nid };
+    }
+    function assembleDeal(cfg, rng, built, withFeatures){
+      const all = built.cards.slice();
+      // shuffle
+      for(let i=all.length-1; i>0; i--){ const j = Math.floor(rng()*(i+1)); const t = all[i]; all[i] = all[j]; all[j] = t; }
+      const nCols = 5;
+      const tabCount = Math.min(all.length - 3, Math.max(nCols, Math.round(all.length * 0.56)));
+      const cols = [[],[],[],[],[]];
+      const base = Math.floor(tabCount / nCols);
+      const depths = [0,1,2,3,4].map(() => base);
+      const order = [0,1,2,3,4].sort(() => rng() - .5);
+      for(let r=0; r<tabCount % nCols; r++) depths[order[r]]++;
+      let idx = 0;
+      for(let c=0; c<nCols; c++) for(let k=0; k<depths[c] && idx<tabCount; k++) cols[c].push(all[idx++]);
+      // deal-quality bias: a crown buried in the deep face-down half of a column
+      // is the main deadlock source — nudge it toward the exposed end
+      cols.forEach(c => {
+        if(c.length < 3) return;
+        for(let i=0; i<Math.floor(c.length/2); i++){
+          if(REG[c[i]].kind === "crown"){
+            const j = c.length - 2, t = c[i]; c[i] = c[j]; c[j] = t;
+          }
+        }
+      });
+      const stock = all.slice(idx);
+      const st = {
+        level: cfg.n, cols, down: cols.map(c => Math.max(0, c.length-1)),
+        stock, waste: [], found:[null,null,null,null,null], banked:{},
+        locked:{}, form:{}, movesLeft:0, budget:0
+      };
+      if(withFeatures) addFeatures(st, cfg, rng, built.nid);
+      return st;
+    }
+    function addFeatures(st, cfg, rng, nid){
+      // locks on member cards in columns; a matching key card goes into the stock
+      const lockable = [];
+      st.cols.forEach(c => c.forEach(id => { if(REG[id].kind === "member") lockable.push(id); }));
+      for(let L=0; L<cfg.locks && lockable.length; L++){
+        const id = lockable.splice(Math.floor(rng()*lockable.length), 1)[0];
+        const color = LOCK_COLORS[L % LOCK_COLORS.length].id;
+        st.locked[id] = color;
+        const kid = nid();
+        REG[kid] = { kind:"key", color, word:"Key" };
+        st.stock.splice(Math.floor(rng()*(st.stock.length+1)), 0, kid);
+      }
+      // half cards: split member cards sitting in columns; partner half into the stock
+      const halfable = [];
+      st.cols.forEach(c => c.forEach(id => { if(REG[id].kind === "member" && !st.locked[id]) halfable.push(id); }));
+      for(let H=0; H<cfg.halves && halfable.length; H++){
+        const id = halfable.splice(Math.floor(rng()*halfable.length), 1)[0];
+        const pair = "p" + H + "_" + id;
+        const whole = REG[id];
+        REG[id] = { kind:"half", fam:whole.fam, whole:whole.word, wrank:whole.rank, pair, side:"top", word:whole.word };
+        const hid = nid();
+        REG[hid] = { kind:"half", fam:whole.fam, whole:whole.word, wrank:whole.rank, pair, side:"bot", word:whole.word };
+        st.stock.splice(Math.floor(rng()*(st.stock.length+1)), 0, hid);
+      }
+    }
+    function structuredDeal(cfg, rng, built){
+      // guaranteed-solvable fallback: each column is a stack of family runs, crown exposed first
+      const byFam = {};
+      built.cards.forEach(id => { (byFam[REG[id].fam] = byFam[REG[id].fam] || []).push(id); });
+      const cols = [[],[],[],[],[]];
+      let ci = 0;
+      Object.values(byFam).forEach(ids => {
+        const crown = ids.find(id => REG[id].kind === "crown");
+        const mem = ids.filter(id => id !== crown).sort((a,b) => REG[b].rank - REG[a].rank);
+        cols[ci % 5].push.apply(cols[ci % 5], mem.concat([crown]));
+        ci++;
+      });
+      return { level:cfg.n, cols, down:cols.map(c => Math.max(0, c.length-1)), stock:[], waste:[],
+               found:[null,null,null,null,null], banked:{}, locked:{}, form:{}, movesLeft:0, budget:170 };
+    }
+    // fast randomized-greedy solver: plays bank/unlock/merge first, stacks to
+    // uncover cards, cycles the deck otherwise; random restarts shake loose
+    // deals that need a less obvious line. Returns step count or null.
+    function greedySolve(st0, rng, deadline){
+      for(let r=0; r<500; r++){
+        if(deadline && Date.now() > deadline) return null;
+        const st = clone(st0);
+        const seen = new Set();
+        let steps = 0;
+        while(steps++ < 600){
+          if(isWin(st)) return steps;
+          if(deadline && (steps & 31) === 0 && Date.now() > deadline) return null;
+          const k = stateKey(st);
+          if(seen.has(k)) break;
+          seen.add(k);
+          const moves = enumMoves(st, true);
+          const real = moves.filter(m => m.kind !== "flip");
+          let mv = null;
+          if(real.length){
+            if(rng() < 0.22) mv = real[Math.floor(rng()*real.length)];
+            else {
+              const best = real[0].prio;
+              const group = real.filter(m => m.prio === best);
+              mv = group[Math.floor(rng()*group.length)];
+            }
+          } else if(moves.length) mv = moves[0];
+          else break;
+          applyMove(st, mv);
+        }
+      }
+      return null;
+    }
+    function budgetFor(st){
+      const totalPlay = st.cols.reduce((a, c) => a + c.length, 0) + st.stock.length + st.waste.length;
+      return Math.max(30, Math.min(210, Math.round(totalPlay * 3.2) + 18));
+    }
+    function generateLevel(n){
+      const cfg = levelCfg(n);
+      const seed = n * 7919 + 104729;
+      const t0 = Date.now();
+      // random deals, verified (greedy first, DFS second) within a tight time box
+      for(let attempt=0; attempt<80; attempt++){
+        const rng = mulberry32(seed + attempt * 131);
+        const built = buildCards(cfg, rng);
+        const st = assembleDeal(cfg, rng, built, true);
+        const dl = Math.min(Date.now() + 200, t0 + 650);
+        if(greedySolve(st, rng, Math.min(Date.now() + 60, dl)) || solve(st, 6000, dl)){
+          st.budget = budgetFor(st);
+          st.movesLeft = st.budget;
+          return { st, cfg, solLen: -2 };
+        }
+        if(Date.now() - t0 > 650) break;
+      }
+      // structured fallback: family runs stacked so the deal is solvable by construction;
+      // features are layered on, then verified — stripped only if verification fails
+      const tries = [
+        { locks: cfg.locks, halves: cfg.halves },
+        { locks: cfg.locks, halves: 0 },
+        { locks: 0, halves: 0 }
+      ];
+      for(const t of tries){
+        const rng = mulberry32(seed + 999);
+        const built = buildCards(cfg, rng);
+        const st = structuredDeal(cfg, rng, built);
+        addFeatures(st, { locks: t.locks, halves: t.halves }, rng, built.nid);
+        if(greedySolve(st, rng, Date.now() + 400) || solve(st, 20000, Date.now() + 500)){
+          st.budget = budgetFor(st);
+          st.movesLeft = st.budget;
+          return { st, cfg, solLen: -3 };
+        }
+      }
+      const rng = mulberry32(seed + 999);
+      const built = buildCards(cfg, rng);
+      const st = structuredDeal(cfg, rng, built);
+      st.budget = budgetFor(st);
+      st.movesLeft = st.budget;
+      return { st, cfg, solLen: -1 };
+    }
+
+    /* ================= session (in-memory only) ================= */
+    const S = {
+      coins: 120,
+      boost: { hint:3, undo:6, shuffle:2 },
+      stars: {},          // level -> 1..3 earned this session
+      sound: true,
+      level: 1
+    };
+    const PRICES = { hint:15, undo:10, shuffle:20, moves:40 };
+
+    /* ================= tiny synth sounds ================= */
+    let AC = null;
+    function ac(){ if(!AC){ try{ AC = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} } if(AC && AC.state === "suspended") AC.resume(); return AC; }
+    function tone(freq, delay, dur, type, gain){
+      if(!S.sound) return; const ctx = ac(); if(!ctx) return;
+      const t = ctx.currentTime + (delay||0);
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type || "sine"; o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain || 0.12, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.12));
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + (dur || 0.12) + 0.05);
+    }
+    const sfx = {
+      place(){ tone(520, 0, .09, "sine", .12); tone(780, .05, .1, "sine", .1); },
+      flip(){ tone(340, 0, .05, "triangle", .07); },
+      error(){ tone(150, 0, .14, "sawtooth", .05); },
+      unlock(){ tone(660, 0, .08, "sine", .1); tone(990, .07, .12, "sine", .1); },
+      merge(){ tone(440, 0, .08, "sine", .1); tone(660, .06, .11, "sine", .1); },
+      draw(){ tone(420, 0, .05, "triangle", .06); },
+      win(){ [523,659,784,1047].forEach((f,i) => tone(f, i*.09, .16, "sine", .11)); }
+    };
+
+    /* ================= game runtime ================= */
+    let G = null; // { st, cfg, history:[], sel:null, hintPair:null, over:false, started:false }
+    const boardEl = $("#board"), foundEl = $("#foundRow"), wasteEl = $("#waste"), stockEl = $("#stock");
+
+    function measure(){
+      const w = boardEl.clientWidth || Math.min(window.innerWidth, 560) - 20;
+      const cw = Math.floor((w - 4*6) / 5);
+      const ch = Math.round(cw * 1.42);
+      document.documentElement.style.setProperty("--cw", cw + "px");
+      document.documentElement.style.setProperty("--ch", ch + "px");
+      return { cw, ch };
+    }
+    function cardHTML(st, id, opts){
+      opts = opts || {};
+      const r = REG[id], e = eff(st, id);
+      const el = document.createElement("div");
+      el.className = "card";
+      el.dataset.cid = id;
+      if(opts.zone){ el.dataset.zone = opts.zone; if(opts.col !== undefined) el.dataset.col = opts.col; if(opts.idx !== undefined) el.dataset.idx = opts.idx; }
+      if(opts.faceDown){
+        el.classList.add("back");
+        let peek = "";
+        if(r.kind === "key") peek = '<span class="peek" style="color:' + lockColor(r.color).hex + '">' + svgIcon("key", 2.4) + '</span>';
+        else if(st.locked[id]) peek = '<span class="peek" style="color:' + lockColor(st.locked[id]).hex + '">' + svgIcon("lock", 2.4) + '</span>';
+        el.innerHTML = peek;
+        return el;
+      }
+      if(st.locked[id]){
+        el.classList.add("plate");
+        el.setAttribute("role", "button");
+        el.setAttribute("aria-label", "Locked card, needs " + lockColor(st.locked[id]).name + " key");
+        const col = lockColor(st.locked[id]);
+        el.style.setProperty("--plate", col.hex);
+        el.innerHTML =
+          '<span class="rivet" style="top:5px;left:5px"></span><span class="rivet" style="top:5px;right:5px"></span>' +
+          '<span class="rivet" style="bottom:5px;left:5px"></span><span class="rivet" style="bottom:5px;right:5px"></span>' +
+          '<span class="lockArt">' + svgIcon("lock", 1.7) + '</span>' +
+          '<span class="need"><i style="background:' + col.hex + '"></i>0/1</span>';
+        return el;
+      }
+      const fam = FAM[e.fam];
+      if(opts.zone){ el.setAttribute("role", "button"); el.setAttribute("aria-label", e.kind === "half" ? ("Half of " + e.word) : (e.word || "Card")); }
+      if(e.kind === "key"){
+        const col = lockColor(e.color);
+        el.classList.add("keyCard");
+        el.setAttribute("aria-label", col.name + " key");
+        el.innerHTML =
+          '<div class="band" style="background:' + col.hex + '"><span class="bandArt" style="color:' + col.hex + '">' + svgIcon("key") + '</span></div>' +
+          '<div class="keyArt" style="color:' + col.hex + '">' + svgIcon("key", 1.6) + '</div>' +
+          '<div class="word">' + col.name + ' key</div>';
+        return el;
+      }
+      if(e.kind === "half"){
+        el.classList.add("halfCard");
+        const iconSvg = svgIcon(fam.icon, 1.7);
+        const topPresent = r.side === "top";
+        const zone = (present, isTop) =>
+          '<div class="halfZone ' + (isTop ? "topH" : "botH") + (present ? "" : " missing") + '" style="' + (present ? "background:color-mix(in srgb," + fam.hue + " 38%, #fff6e0);color:" + fam.hue : "") + '">' +
+            (present ? '<span class="halfIcon">' + iconSvg + '</span>' : "") + '</div>';
+        el.innerHTML = zone(topPresent, true) + zone(!topPresent, false) +
+          '<span class="halfWord">' + e.word + '</span>';
+        return el;
+      }
+      // crown or member: plain ivory face, word centered, small art tab at the bottom
+      const isCrown = e.kind === "crown";
+      if(isCrown) el.classList.add("crownCard");
+      let dotsHtml = "";
+      if(fam.seq){
+        const total = FAMTOTAL[e.fam];
+        let dots = "";
+        for(let i=0; i<total; i++) dots += '<i class="' + (i <= e.rank ? "on" : "") + '"></i>';
+        dotsHtml = '<span class="dots">' + dots + '</span>';
+      }
+      let tab;
+      if(isCrown) tab = '<span class="artTab crownTab">' + svgIcon(fam.seq ? "steps" : "crown") + '</span>';
+      else if(fam.seq) tab = '<span class="artTab seqTab">' + svgIcon("steps") + '</span>';
+      else tab = '<span class="artTab" style="background:color-mix(in srgb,' + fam.hue + ' 22%, #fff6e0);color:' + fam.hue + '">' + svgIcon(fam.icon) + '</span>';
+      const wlen = (e.word || "").length;
+      const wfs = wlen >= 8 ? ' style="font-size:calc(var(--cw)*.175)"' : wlen === 7 ? ' style="font-size:calc(var(--cw)*.2)"' : "";
+      el.innerHTML =
+        (isCrown ? '<span class="crownBadge">' + svgIcon("crown") + '</span>' : "") +
+        '<div class="word"' + wfs + '>' + e.word + '</div>' +
+        '<div class="footArt">' + dotsHtml + tab + '</div>';
+      return el;
+    }
+    function render(){
+      if(!G) return;
+      const st = G.st, m = measure();
+      // foundations
+      foundEl.innerHTML = "";
+      for(let s=0; s<5; s++){
+        const slot = document.createElement("div");
+        slot.className = "fslot"; slot.dataset.dz = "found"; slot.dataset.slot = s;
+        slot.setAttribute("role", "button");
+        if(G.hintPair && G.hintPair.slot === s) slot.classList.add("hintDst");
+        const fam = st.found[s];
+        if(!fam){
+          slot.setAttribute("aria-label", "Empty crown slot");
+          slot.innerHTML = '<span class="ghostCrown">' + svgIcon("crown", 1.4) + '</span>';
+        } else {
+          slot.setAttribute("aria-label", FAM[fam].label + " foundation, " + (st.banked[fam]||[]).length + " of " + FAMTOTAL[fam] + " banked");
+          const banked = st.banked[fam] || [];
+          const crownId = banked.find(id => eff(st, id).kind === "crown");
+          if(crownId){
+            const c = cardHTML(st, crownId, {});
+            c.classList.add("fcard");
+            slot.appendChild(c);
+          }
+          const done = banked.length >= FAMTOTAL[fam];
+          if(done) slot.classList.add("done");
+          if(FAM[fam].seq && !done){
+            const L = banked.length;
+            const next = L === 0 ? FAM[fam].crown : FAM[fam].members[L-1];
+            slot.insertAdjacentHTML("beforeend", '<span class="nextUp">next: ' + next + '</span>');
+          } else {
+            slot.insertAdjacentHTML("beforeend", '<span class="prog">' + banked.length + "/" + FAMTOTAL[fam] + '</span>');
+          }
+        }
+        foundEl.appendChild(slot);
+      }
+      // tableau
+      boardEl.innerHTML = "";
+      const overDown = Math.round(m.ch * 0.26), overUp = Math.round(m.ch * 0.36);
+      st.cols.forEach((colArr, ci) => {
+        const colEl = document.createElement("div");
+        colEl.className = "col" + (colArr.length ? "" : " emptyCol");
+        colEl.dataset.dz = "col"; colEl.dataset.col = ci;
+        let y = 0;
+        colArr.forEach((id, idx) => {
+          const up = isFaceUp(st, ci, idx);
+          const lockedHere = !!st.locked[id] && idx === colArr.length - 1;
+          const el = cardHTML(st, id, { faceDown: !up && !lockedHere, zone:"col", col:ci, idx });
+          el.style.top = y + "px";
+          el.style.zIndex = idx + 1;
+          if(idx === colArr.length - 1) el.classList.add("topCard");
+          if(G.lastFlip && G.lastFlip.indexOf(id) >= 0) el.classList.add("flipIn");
+          if(G.sel && G.sel.zone === "col" && G.sel.col === ci && idx >= G.sel.idx) el.classList.add("selected");
+          if(G.hintPair){
+            if(G.hintPair.srcIds.indexOf(id) >= 0) el.classList.add("hintSrc");
+            if(G.hintPair.dstId === id) el.classList.add("hintDst");
+          }
+          colEl.appendChild(el);
+          y += (up || lockedHere ? overUp : overDown);
+        });
+        colEl.style.height = (colArr.length ? y - (isFaceUp(st, ci, colArr.length-1) || st.locked[colArr[colArr.length-1]] ? overUp : overDown) + m.ch : m.ch) + "px";
+        boardEl.appendChild(colEl);
+      });
+      // waste (fan of last 3, only top interactive)
+      wasteEl.innerHTML = "";
+      const wShow = st.waste.slice(-3);
+      wShow.forEach((id, i) => {
+        const isTop = i === wShow.length - 1;
+        const el = cardHTML(st, id, isTop ? { zone:"waste" } : {});
+        el.style.left = (i * 13) + "px";
+        el.style.zIndex = i + 1;
+        if(isTop && G.sel && G.sel.zone === "waste") el.classList.add("selected");
+        if(isTop && G.hintPair && G.hintPair.srcIds.indexOf(id) >= 0) el.classList.add("hintSrc");
+        wasteEl.appendChild(el);
+      });
+      // stock
+      stockEl.innerHTML = "";
+      stockEl.setAttribute("role", "button");
+      stockEl.setAttribute("aria-label", st.stock.length ? "Draw card" : st.waste.length ? "Recycle the waste pile" : "Deck empty");
+      if(st.stock.length){
+        const back = cardHTML(st, st.stock[st.stock.length-1], { faceDown:true });
+        back.querySelector(".peek")?.remove();
+        if(G.hintPair && G.hintPair.stock) back.classList.add("hintSrc");
+        stockEl.appendChild(back);
+        stockEl.insertAdjacentHTML("beforeend", '<span class="stockCount">' + st.stock.length + '</span>');
+      } else if(st.waste.length){
+        stockEl.innerHTML = '<span class="recycleHint">' + svgIcon("recycle") + '</span>';
+      } else {
+        stockEl.innerHTML = '<span class="recycleHint" style="opacity:.35">' + svgIcon("check") + '</span>';
+      }
+      // HUD
+      $("#movesNum").textContent = st.movesLeft;
+      $("#movesRibbon").classList.toggle("low", st.movesLeft <= 8 && !G.over);
+      $("#hudLvl").innerHTML = "Level " + G.cfg.n + "<small>" + G.cfg.diff + "</small>";
+      renderCoins(); renderBoosters();
+    }
+    function renderCoins(){
+      const html = svgIcon("coin", 1.6) + "<span>" + S.coins + "</span>";
+      $("#mapCoins").innerHTML = html; $("#gameCoins").innerHTML = html;
+    }
+    function renderBoosters(){
+      const defs = [
+        { id:"hintBtn", key:"hint", icon:"bulb", label:"Hint" },
+        { id:"undoBtn", key:"undo", icon:"undo", label:"Undo" },
+        { id:"shuffleBtn", key:"shuffle", icon:"shuffle", label:"Shuffle" }
+      ];
+      defs.forEach(d => {
+        const btn = document.getElementById(d.id), n = S.boost[d.key];
+        btn.innerHTML = svgIcon(d.icon) + "<small>" + d.label + "</small>" +
+          (n > 0 ? '<span class="cnt">' + n + '</span>'
+                 : '<span class="cnt buy">' + svgIcon("coin", 2.2) + PRICES[d.key] + '</span>');
+      });
+    }
+    let toastTimer = null;
+    function toast(msg, ms){
+      const t = $("#toast");
+      t.textContent = msg; t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), ms || 2400);
+    }
+
+    /* ================= level flow ================= */
+    function showScreen(name){
+      $("#mapScreen").hidden = name !== "map";
+      $("#gameScreen").hidden = name !== "game";
+      if(name === "map") renderMap();
+    }
+    function hideOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.hidden = true); }
+    function loadLevel(n){
+      const gen = generateLevel(n);
+      G = { st: gen.st, cfg: gen.cfg, history: [], sel: null, hintPair: null, lastFlip: [], over: false, started: false };
+      // top up boosters a little each level
+      S.boost.hint = Math.max(S.boost.hint, 2);
+      S.boost.undo = Math.max(S.boost.undo, 4);
+      S.boost.shuffle = Math.max(S.boost.shuffle, 1);
+      render();
+    }
+    function startLevel(n){
+      S.level = n;
+      showScreen("game");
+      loadLevel(n);
+      fillIntro();
+      $("#introOverlay").hidden = false;
+    }
+    function fillIntro(){
+      const cfg = G.cfg, st = G.st;
+      $("#introTitle").textContent = "Level " + cfg.n;
+      const d = $("#introDiff");
+      d.textContent = cfg.diff; d.className = "diffTag diff-" + cfg.diff;
+      $("#introMoves").textContent = st.budget + " moves to clear the board";
+      const fams = Object.keys(FAMTOTAL).map(fid => FAM[fid]);
+      $("#introFams").innerHTML = fams.map(f =>
+        '<span class="famChip"><i style="background:' + f.hue + '">' + svgIcon(f.icon, 2.2) + '</i>' + f.label + '</span>').join("");
+      const feats = [];
+      fams.filter(f => f.seq).forEach(f => feats.push(
+        '<div style="color:#a4762a">' + svgIcon("steps") + '<span><b>Sequence:</b> ' + [f.crown].concat(f.members.slice(0, FAMTOTAL[f.id]-1)).join(" → ") + ' — in exact order.</span></div>'));
+      if(cfg.locks) feats.push('<div style="color:#64788f">' + svgIcon("lock") + '<span><b>' + cfg.locks + ' locked card' + (cfg.locks>1?"s":"") + '.</b> Find the matching color key to open ' + (cfg.locks>1?"them":"it") + '.</span></div>');
+      if(cfg.halves) feats.push('<div style="color:#2e8b8b">' + svgIcon("half") + '<span><b>' + cfg.halves + ' split card' + (cfg.halves>1?"s":"") + '.</b> Drag the matching half onto it before it can be banked.</span></div>');
+      feats.push('<div style="color:#2f6fb2">' + svgIcon("wave") + '<span>Bank every family onto its crown to win.</span></div>');
+      $("#introFeats").innerHTML = feats.join("");
+    }
+    function pushHistory(){
+      G.history.push(clone(G.st));
+      if(G.history.length > 60) G.history.shift();
+    }
+    function bankedCount(st){ return Object.values(st.banked).reduce((a, arr) => a + arr.length, 0); }
+    function doMove(mv){
+      if(!G || G.over) return;
+      const st = G.st;
+      const beforeBanked = bankedCount(st);
+      const beforeFams = Object.keys(FAMTOTAL).filter(f => (st.banked[f]||[]).length >= FAMTOTAL[f]);
+      pushHistory();
+      const flipped = applyMove(st, mv);
+      st.movesLeft--;
+      G.lastFlip = flipped;
+      G.sel = null; G.hintPair = null;
+      // scoring
+      let gain = 0;
+      const bankedDelta = bankedCount(st) - beforeBanked;
+      gain += bankedDelta * 2;
+      if(mv.kind === "unlock") gain += 5;
+      if(mv.kind === "merge") gain += 5;
+      const afterFams = Object.keys(FAMTOTAL).filter(f => (st.banked[f]||[]).length >= FAMTOTAL[f]);
+      afterFams.forEach(f => { if(beforeFams.indexOf(f) < 0){ gain += 10; setTimeout(() => toast(FAM[f].label + " complete! +10 coins"), 60); } });
+      if(gain > 0) S.coins += gain;
+      // feedback
+      if(mv.kind === "bank" || mv.kind === "bankPile"){ buzz(14); sfx.place(); }
+      else if(mv.kind === "unlock"){ buzz([16,40,16]); sfx.unlock(); }
+      else if(mv.kind === "merge"){ buzz([12,30,20]); sfx.merge(); }
+      else if(mv.kind === "stack"){ buzz(10); sfx.place(); }
+      else if(mv.kind === "flip"){ buzz(6); sfx.draw(); }
+      if(flipped.length){ setTimeout(() => { buzz(7); sfx.flip(); }, 90); }
+      render();
+      if(isWin(st)){ onWin(); return; }
+      if(st.movesLeft <= 0){
+        G.over = true;
+        buzz([40,50,40]); sfx.error();
+        const b = $("#buyMovesBtn");
+        b.innerHTML = "+20 Moves · " + PRICES.moves + " coins";
+        b.disabled = S.coins < PRICES.moves;
+        setTimeout(() => { $("#failOverlay").hidden = false; }, 450);
+      }
+    }
+    function onWin(){
+      G.over = true;
+      const st = G.st;
+      const frac = st.movesLeft / st.budget;
+      const stars = frac >= 0.30 ? 3 : frac >= 0.12 ? 2 : 1;
+      const reward = 30 + Math.min(30, st.movesLeft);
+      S.coins += reward;
+      S.stars[G.cfg.n] = Math.max(S.stars[G.cfg.n] || 0, stars);
+      buzz([25,40,25,40,70]); sfx.win();
+      $("#winStars").innerHTML = [1,2,3].map(i => svgIcon("star", 1.4).replace("<svg", '<svg class="' + (i <= stars ? "on" : "off") + '"')).join("");
+      $("#winReward").innerHTML = 'You earned <span class="coinPill">' + svgIcon("coin", 1.6) + reward + "</span>";
+      $("#nextBtn").textContent = G.cfg.n >= TOTAL_LEVELS ? "Finish" : "Next Level";
+      renderCoins();
+      setTimeout(() => { $("#winOverlay").hidden = false; }, 550);
+    }
+
+    /* ================= boosters ================= */
+    function spendBooster(keyName){
+      if(S.boost[keyName] > 0){ S.boost[keyName]--; return true; }
+      if(S.coins >= PRICES[keyName]){ S.coins -= PRICES[keyName]; renderCoins(); return true; }
+      toast("Not enough coins for that booster");
+      buzz([30,40,30]); sfx.error();
+      return false;
+    }
+    function describeMove(st, mv){
+      const cards = dragCards(st, mv.src).map(id => eff(st, id));
+      const b = cards[0];
+      if(mv.kind === "bankPile") return "Drag the " + b.word + " crown into an empty top slot — its whole " + FAM[mv.fam].label + " pile comes with it";
+      if(mv.kind === "bank"){
+        if(eff(st, dragCards(st, mv.src)[0]).kind === "crown") return "Drag the " + b.word + " crown into an empty top slot";
+        return "Bank “" + b.word + "” onto the " + FAM[mv.fam].label + " crown";
+      }
+      if(mv.kind === "unlock") return "Drag the " + lockColor(st.locked[mv.lockCard]).name + " key onto its lock";
+      if(mv.kind === "merge") return "Join the two halves of “" + b.word + "”";
+      if(mv.kind === "stack"){
+        const t = eff(st, topId(st, mv.col));
+        return "Put “" + b.word + "” on “" + t.word + "”";
+      }
+      return "Cycle the deck to find the next card";
+    }
+    function useHint(){
+      if(!G || G.over) return;
+      const moves = enumMoves(G.st, false);
+      const mv = moves.find(m => m.kind !== "flip");
+      if(!mv && !moves.length){ toast("No moves left — try Undo, Shuffle, or restart"); return; }
+      if(!spendBooster("hint")) { renderBoosters(); return; }
+      G.sel = null;
+      if(!mv){
+        G.hintPair = { srcIds: [], dstId: null, stock: true };
+        toast("Cycle the deck to find the next card");
+        buzz(10); render();
+        return;
+      }
+      const srcIds = dragCards(G.st, mv.src);
+      if(mv.kind === "bankPile") mv.ids.forEach(id => { if(srcIds.indexOf(id) < 0) srcIds.push(id); });
+      G.hintPair = {
+        srcIds,
+        dstId: mv.kind === "stack" ? topId(G.st, mv.col) : mv.kind === "unlock" ? mv.lockCard : mv.kind === "merge" ? mv.targetHalf : null,
+        slot: (mv.kind === "bank" || mv.kind === "bankPile") ? mv.slot : null
+      };
+      toast(describeMove(G.st, mv), 3200);
+      buzz(10);
+      render();
+    }
+    function useUndo(){
+      if(!G) return;
+      if(!G.history.length){ toast("Nothing to undo yet"); return; }
+      if(!spendBooster("undo")){ renderBoosters(); return; }
+      G.st = G.history.pop();
+      G.over = false; G.sel = null; G.hintPair = null; G.lastFlip = [];
+      buzz(8); sfx.flip();
+      render();
+    }
+    function useShuffle(){
+      if(!G || G.over) return;
+      const st = G.st;
+      if(st.stock.length + st.waste.length < 2){ toast("Nothing in the deck to shuffle"); return; }
+      if(!spendBooster("shuffle")){ renderBoosters(); return; }
+      pushHistory();
+      const all = st.stock.concat(st.waste);
+      for(let i=all.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); const t = all[i]; all[i] = all[j]; all[j] = t; }
+      st.stock = all; st.waste = [];
+      G.sel = null; G.hintPair = null;
+      buzz([10,30,10]); sfx.draw();
+      toast("Deck shuffled");
+      render();
+    }
+
+    /* ================= map ================= */
+    function renderMap(){
+      renderCoins();
+      const grid = $("#levelGrid");
+      let html = "";
+      REGIONS.forEach(r => {
+        html += '<div class="region"><div class="regionHead"><h2>' + r.name + '</h2><span class="diff-' + diffOf(r.from) + '">' + diffOf(r.from) + '</span></div><div class="lvlGrid">';
+        for(let n=r.from; n<=r.to; n++){
+          const cfg = levelCfg(n);
+          const stars = S.stars[n] || 0;
+          let feat = "";
+          if(cfg.seqCount) feat += '<i style="background:#dd7f2e">' + svgIcon("steps", 2.6) + '</i>';
+          if(cfg.locks) feat += '<i style="background:#64788f">' + svgIcon("lock", 2.6) + '</i>';
+          if(cfg.halves) feat += '<i style="background:#2e8b8b">' + svgIcon("half", 2.6) + '</i>';
+          html += '<button class="lvlBtn" data-level="' + n + '"><span class="feat">' + feat + '</span><b>' + n + '</b>' +
+                  '<span class="stars">' + "★★★".slice(0, stars) + "☆☆☆".slice(0, 3-stars) + '</span></button>';
+        }
+        html += "</div></div>";
+      });
+      grid.innerHTML = html;
+      grid.querySelectorAll(".lvlBtn").forEach(b => b.addEventListener("click", () => { ac(); startLevel(+b.dataset.level); }));
+    }
+
+    /* ================= drag & drop + tap ================= */
+    let drag = null, stockTap = false, lastTap = { cid:null, t:0 };
+    const dragLayer = $("#dragLayer");
+    function resolveTarget(el){
+      if(!el || !el.closest) return null;
+      const f = el.closest('[data-dz="found"]');
+      if(f) return { zone:"found", slot:+f.dataset.slot };
+      const c = el.closest('[data-dz="col"]');
+      if(c) return { zone:"col", col:+c.dataset.col };
+      if(el.closest('[data-dz="waste"]')) return { zone:"waste" };
+      return null;
+    }
+    function targetEl(target){
+      if(!target) return null;
+      if(target.zone === "found") return foundEl.children[target.slot];
+      if(target.zone === "col"){
+        const colEl = boardEl.children[target.col];
+        return colEl ? (colEl.querySelector(".card.topCard") || colEl) : null;
+      }
+      if(target.zone === "waste") return wasteEl.querySelector(".card:last-child");
+      return null;
+    }
+    function srcFromCard(el){
+      const zone = el.dataset.zone;
+      if(zone === "waste") return G.st.waste.length ? { zone:"waste" } : null;
+      if(zone === "col"){
+        const ci = +el.dataset.col, idx = +el.dataset.idx, st = G.st;
+        if(!isFaceUp(st, ci, idx)) return null;
+        for(let j=idx; j<st.cols[ci].length; j++) if(st.locked[st.cols[ci][j]]) return null;
+        return { zone:"col", col:ci, idx };
+      }
+      return null;
+    }
+    function clearDropMarks(){
+      document.querySelectorAll(".dropOk,.dropBad").forEach(e => e.classList.remove("dropOk","dropBad"));
+    }
+    function cleanupDrag(){
+      dragLayer.style.display = "none";
+      dragLayer.innerHTML = "";
+      document.querySelectorAll(".dragSrc").forEach(e => e.classList.remove("dragSrc"));
+      clearDropMarks();
+    }
+    function beginDrag(e){
+      const st = G.st;
+      const ids = dragCards(st, drag.src);
+      drag.ids = ids;
+      // crown resting on its own family's pile: carry the whole group in hand
+      if(ids.length === 1 && drag.src.zone === "col"){
+        const e0 = eff(st, ids[0]), ci = drag.src.col, colArr = st.cols[ci];
+        if(e0.kind === "crown" && drag.src.idx === colArr.length - 1){
+          const pile = [];
+          for(let j = drag.src.idx - 1; j >= 0; j--){
+            if(j < st.down[ci] || st.locked[colArr[j]]) break;
+            const e = eff(st, colArr[j]);
+            if(e.kind !== "member" || e.fam !== e0.fam) break;
+            pile.unshift(colArr[j]);
+          }
+          if(pile.length && (!FAM[e0.fam].seq || pile.every((id, i) => eff(st, id).rank === i + 1)))
+            drag.ids = ids.concat(pile.slice().reverse());
+        }
+      }
+      const firstEl = document.querySelector('.card[data-cid="' + ids[0] + '"]');
+      if(!firstEl){ drag = null; return; }
+      const rect = firstEl.getBoundingClientRect();
+      drag.rect = rect;
+      dragLayer.innerHTML = "";
+      const m = measure();
+      const overUp = Math.round(m.ch * 0.36);
+      ids.forEach((id, i) => {
+        const c = cardHTML(st, id, {});
+        c.style.top = (i * overUp) + "px";
+        c.style.left = "0";
+        dragLayer.appendChild(c);
+      });
+      dragLayer.style.display = "block";
+      dragLayer.style.width = m.cw + "px";
+      dragLayer.style.transform = "translate(" + rect.left + "px," + rect.top + "px)";
+      ids.forEach(id => {
+        document.querySelectorAll('.card[data-cid="' + id + '"]').forEach(el => el.classList.add("dragSrc"));
+      });
+      drag.active = true;
+      buzz(5);
+    }
+    function attempt(srcDrag, target){
+      const r = canDrop(G.st, srcDrag, target);
+      if(r.ok){ doMove(r.move); return true; }
+      if(r.reason) toast(r.reason);
+      buzz([22,30,22]); sfx.error();
+      return false;
+    }
+    function autoBank(srcDrag){
+      const ids = dragCards(G.st, srcDrag);
+      if(!ids.length) return false;
+      const e0 = eff(G.st, ids[0]);
+      if(e0.kind === "crown"){
+        const s = G.st.found.indexOf(null);
+        if(s >= 0){ const r = canDrop(G.st, srcDrag, { zone:"found", slot:s }); if(r.ok){ doMove(r.move); return true; } }
+      }
+      const s2 = G.st.found.indexOf(e0.fam);
+      if(s2 >= 0){ const r = canDrop(G.st, srcDrag, { zone:"found", slot:s2 }); if(r.ok){ doMove(r.move); return true; } }
+      return false;
+    }
+    const gameEl = $("#gameScreen");
+    gameEl.addEventListener("pointerdown", e => {
+      if(!G || G.over || !$("#introOverlay").hidden) return;
+      if(e.target.closest("button")) return;
+      ac();
+      if(e.target.closest("#stock")){ stockTap = true; return; }
+      const cardEl = e.target.closest(".card[data-zone]");
+      if(cardEl){
+        const src = srcFromCard(cardEl);
+        if(src){ drag = { src, startX:e.clientX, startY:e.clientY, active:false, cur:null }; return; }
+      }
+      drag = null;
+    });
+    window.addEventListener("pointermove", e => {
+      if(!drag || !G) return;
+      if(!drag.active){
+        if(Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 6) return;
+        beginDrag(e);
+        if(!drag) return;
+      }
+      const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
+      dragLayer.style.transform = "translate(" + (drag.rect.left + dx) + "px," + (drag.rect.top + dy) + "px)";
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      const target = resolveTarget(under);
+      clearDropMarks();
+      drag.cur = null;
+      if(target){
+        const r = canDrop(G.st, drag.src, target);
+        drag.cur = { target, r };
+        const el = targetEl(target);
+        if(el) el.classList.add(r.ok ? "dropOk" : "dropBad");
+      }
+    }, { passive:true });
+    window.addEventListener("pointerup", e => {
+      if(stockTap){
+        stockTap = false;
+        if(G && !G.over && $("#introOverlay").hidden && !e.target.closest("button")){
+          if(G.st.stock.length || G.st.waste.length) doMove({ kind:"flip" });
+        }
+        return;
+      }
+      if(!G) return;
+      if(!drag){
+        // pointer went down on a non-draggable spot (lock plate, face-down card,
+        // foundation slot): if a card is selected, treat this tap as its target
+        if(G.sel && !e.target.closest("button")){
+          const target = resolveTarget(e.target);
+          if(target) attempt(G.sel, target);
+          G.sel = null; render();
+        }
+        return;
+      }
+      const d = drag; drag = null;
+      if(d.active){
+        cleanupDrag();
+        if(d.cur && d.cur.r.ok) doMove(d.cur.r.move);
+        else {
+          if(d.cur && d.cur.r.reason) toast(d.cur.r.reason);
+          buzz([22,30,22]); sfx.error();
+        }
+        return;
+      }
+      // ---- tap (no drag movement) ----
+      const cardEl = e.target.closest(".card[data-zone]");
+      const tappedSrc = cardEl ? srcFromCard(cardEl) : null;
+      if(tappedSrc){
+        const ids = dragCards(G.st, tappedSrc);
+        const now = Date.now();
+        if(lastTap.cid === ids[0] && now - lastTap.t < 330){
+          lastTap = { cid:null, t:0 };
+          if(autoBank(tappedSrc)){ return; }
+        }
+        lastTap = { cid: ids[0], t: now };
+        if(G.sel && !(G.sel.zone === tappedSrc.zone && G.sel.col === tappedSrc.col && G.sel.idx === tappedSrc.idx)){
+          const target = tappedSrc.zone === "waste" ? { zone:"waste" } : { zone:"col", col:tappedSrc.col };
+          if(attempt(G.sel, target)) return;
+          G.sel = tappedSrc; render(); return;
+        }
+        const same = G.sel && G.sel.zone === tappedSrc.zone && G.sel.col === tappedSrc.col && G.sel.idx === tappedSrc.idx;
+        G.sel = same ? null : tappedSrc;
+        render();
+        return;
+      }
+      // tap on a target (foundation slot / empty column / waste) with a selection
+      if(G.sel){
+        const target = resolveTarget(e.target);
+        if(target){ attempt(G.sel, target); }
+        G.sel = null; render();
+      }
+    });
+
+    /* ================= pull-to-refresh lock ================= */
+    // an accidental downward swipe must never reload the page mid-game:
+    // block the native scroll/refresh gesture everywhere except inside the
+    // two inner scrollers (#boardWrap / .sheet), and even there stop the
+    // gesture at the edges so it can't chain out to the browser
+    (function(){
+      let touchY = 0;
+      document.addEventListener("touchstart", e => {
+        if(e.touches.length === 1) touchY = e.touches[0].clientY;
+      }, { passive:true });
+      document.addEventListener("touchmove", e => {
+        if(e.touches.length !== 1 || !e.cancelable) return;
+        const t = e.target && e.target.closest ? e.target.closest("#boardWrap, .sheet") : null;
+        if(!t){
+          e.preventDefault();
+          return;
+        }
+        const dy = e.touches[0].clientY - touchY;
+        const atTop = t.scrollTop <= 0;
+        const atBottom = t.scrollTop + t.clientHeight >= t.scrollHeight - 1;
+        if((dy > 0 && atTop) || (dy < 0 && atBottom)) e.preventDefault();
+      }, { passive:false });
+    })();
+
+    /* ================= wiring ================= */
+    function buildHow(){
+      const rows = [
+        ["crown", "#dfa92f", "Crown cards open foundations", "Drag a crown card — King, Ocean, Thousand — into an empty top slot. Then stack that family's cards onto it to bank them off the board. A crown can also sit on a pile of its own family in a column: drag it to an empty top slot and the whole pile moves with it, flipping so the crown lands underneath."],
+        ["wave", "#2f6fb2", "Match families", "Cards of the same family stack onto each other in the columns. Build stacks to uncover the face-down cards beneath. A crown card takes no cards while it sits in a column — move it into a top slot first, then stack its family onto it there."],
+        ["steps", "#dd7f2e", "Sequences go in exact order", "Cards with the step icon only land in order: Thousand, then Million, then Billion. The dots under the icon show each card's place in line."],
+        ["key", "#c0453e", "Keys open locks", "A locked card can't move until its matching color key lands on it. Keys hide in the deck and under other cards — the little key on a card back means one is buried there."],
+        ["half", "#2e8b8b", "Half cards join up", "A split card with a checkerboard half can't be banked. Find its other half and drag them together to make the whole card."],
+        ["recycle", "#2f9e5f", "Cycle the deck", "Tap the deck to flip the next card up. When the deck runs out, tap it to shuffle the waste back in — cycling is unlimited, but every flip costs a move."],
+        ["bulb", "#3a66c2", "Boosters help", "Hint points at a good move, Undo takes back your last play, Shuffle stirs the deck. Banking cards earns coins to buy more."]
+      ];
+      $("#howBody").innerHTML = rows.map(r =>
+        '<div class="howRow"><span class="howIco" style="background:' + r[1] + '">' + svgIcon(r[0]) + '</span><p><b>' + r[2] + '</b>' + r[3] + '</p></div>').join("");
+    }
+    function updateSoundBtn(){
+      $("#soundBtn").innerHTML = svgIcon(S.sound ? "sound" : "mute");
+      $("#pauseSoundBtn").textContent = "Sound: " + (S.sound ? "On" : "Off");
+    }
+    document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => { $("#" + b.dataset.close).hidden = true; }));
+    $("#playBtn").addEventListener("click", () => { $("#introOverlay").hidden = true; if(G) G.started = true; buzz(8); });
+    $("#introHow").addEventListener("click", () => { $("#howOverlay").hidden = false; });
+    $("#howBtn").addEventListener("click", () => { $("#howOverlay").hidden = false; });
+    $("#soundBtn").addEventListener("click", () => { S.sound = !S.sound; updateSoundBtn(); if(S.sound) sfx.place(); });
+    $("#menuBtn").addEventListener("click", () => { $("#pauseOverlay").hidden = false; });
+    $("#resumeBtn").addEventListener("click", () => { $("#pauseOverlay").hidden = true; });
+    $("#restartBtn").addEventListener("click", () => { hideOverlays(); loadLevel(S.level); if(G) G.started = true; });
+    $("#pauseHowBtn").addEventListener("click", () => { $("#howOverlay").hidden = false; });
+    $("#pauseSoundBtn").addEventListener("click", () => { S.sound = !S.sound; updateSoundBtn(); });
+    $("#quitBtn").addEventListener("click", () => { hideOverlays(); showScreen("map"); });
+    $("#nextBtn").addEventListener("click", () => { hideOverlays(); if(S.level >= TOTAL_LEVELS) showScreen("map"); else startLevel(S.level + 1); });
+    $("#replayBtn").addEventListener("click", () => { hideOverlays(); loadLevel(S.level); if(G) G.started = true; });
+    $("#winMapBtn").addEventListener("click", () => { hideOverlays(); showScreen("map"); });
+    $("#retryBtn").addEventListener("click", () => { hideOverlays(); loadLevel(S.level); if(G) G.started = true; });
+    $("#failMapBtn").addEventListener("click", () => { hideOverlays(); showScreen("map"); });
+    $("#buyMovesBtn").addEventListener("click", () => {
+      if(S.coins < PRICES.moves){ toast("Not enough coins"); return; }
+      S.coins -= PRICES.moves;
+      G.st.movesLeft += 20; G.over = false;
+      $("#failOverlay").hidden = true;
+      buzz(12); sfx.place();
+      render();
+    });
+    $("#hintBtn").addEventListener("click", useHint);
+    $("#undoBtn").addEventListener("click", useUndo);
+    $("#shuffleBtn").addEventListener("click", useShuffle);
+    let resizeT = null;
+    window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if(G && !$("#gameScreen").hidden) render(); }, 120); });
+
+    /* ================= init ================= */
+    buildHow();
+    updateSoundBtn();
+    renderCoins();
+    renderMap();
+    showScreen("map");
+    // debug/test hook (used by automated verification; harmless in play)
+    window.__wp = { generateLevel, solve, levelCfg, FAMILIES, applyMove, enumMoves, canDrop, isWin, getState: () => G, session: S };
+</script>
+<script>
+/* In-page install button. Uses beforeinstallprompt, whose "already installed"
+   check is scope-accurate (this app's own identity), unlike Chrome's menu which
+   reports "already installed" whenever any installed app's scope covers the page. */
+(function(){
+  var btn = document.getElementById('installBtn');
+  var deferred = null;
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(function(){});
+  }
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferred = e;
+    btn.hidden = false;
+  });
+  btn.addEventListener('click', function(){
+    if(!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function(){ deferred = null; btn.hidden = true; });
+  });
+  window.addEventListener('appinstalled', function(){ deferred = null; btn.hidden = true; });
+})();
+</script>
+</body>
+</html>

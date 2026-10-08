@@ -1,0 +1,32 @@
+{
+  "background_color": "#00593B",
+  "description": "An ad-free word-association solitaire card game.",
+  "display": "standalone",
+  "icons": [
+    {
+      "purpose": "any",
+      "sizes": "192x192",
+      "src": "icon-192.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "any",
+      "sizes": "512x512",
+      "src": "icon-512.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "512x512",
+      "src": "icon-maskable-512.png",
+      "type": "image/png"
+    }
+  ],
+  "id": "../index.html",
+  "name": "Solitaire Word Match",
+  "orientation": "portrait",
+  "scope": "../",
+  "short_name": "Word Match",
+  "start_url": "../index.html",
+  "theme_color": "#0e8f3c"
+}
