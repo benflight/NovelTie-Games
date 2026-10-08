@@ -1485,14 +1485,13 @@
     function clearDropMarks(){
       document.querySelectorAll(".dropOk,.dropBad").forEach(e => e.classList.remove("dropOk","dropBad"));
     }
-    function cleanupDrag(){
-      if(drag && drag.els){
-        drag.els.forEach(el => {
-          el.style.transform = "";
-          el.style.zIndex = "";
-          el.classList.remove("dragging");
-        });
-      }
+    function cleanupDrag(d){
+      const els = (d && d.els) || document.querySelectorAll(".card.dragging");
+      els.forEach(el => {
+        el.style.transform = "";
+        el.style.zIndex = "";
+        el.classList.remove("dragging");
+      });
       clearDropMarks();
     }
     function beginDrag(e){
@@ -1603,7 +1602,7 @@
       }
       const d = drag; drag = null;
       if(d.active){
-        cleanupDrag();
+        cleanupDrag(d);
         if(d.cur && d.cur.r.ok) doMove(d.cur.r.move);
         else {
           if(d.cur && d.cur.r.reason) toast(d.cur.r.reason);
