@@ -2,16 +2,31 @@
   "name": "Line upon Line",
   "short_name": "Line upon Line",
   "description": "Learn the doctrine, history, and scriptures of The Church of Jesus Christ of Latter-day Saints.",
-  "id": "../index.html",
-  "start_url": "../index.html",
-  "scope": "../",
+  "id": "/line-upon-line/",
+  "start_url": "/line-upon-line/",
+  "scope": "/line-upon-line/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#f6efe1",
   "theme_color": "#f6efe1",
   "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
