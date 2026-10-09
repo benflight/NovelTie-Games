@@ -132,7 +132,7 @@ function renderRound(){
     h += '<p class="q">Layer '+(R.layer+1)+' of '+n+': what lies beneath <em class="sc">'+esc(above)+'</em> '+SB(above, R.layer===0?"English":w.L[R.layer-1].l)+'?</p><div class="opts">';
     R.opts.forEach(function(o,i){
       var cls = ""; if(R.answered){ if(o.ok) cls=" right"; else if(i===R.picked) cls=" wrong"; }
-      h += '<button class="opt'+cls+'" data-act="pick" data-i="'+i+'"'+(R.answered?" disabled":"")+'><span class="ol">'+esc(o.l)+'</span><span class="of sc">'+esc(o.f)+' '+SB(o.f,o.l)+'</span>'+SH(o.f,o.l,{hook:!!R.answered})+'<span class="og">“'+esc(o.g)+'”</span></button>';
+      h += '<button class="opt'+cls+'" data-act="pick" data-i="'+i+'"'+(R.answered?" disabled":"")+'><span class="ol">'+esc(o.l)+'</span><span class="of sc">'+esc(o.f)+' '+SB(o.f,o.l,R.answered?null:{blind:true})+'</span>'+(R.answered?SH(o.f,o.l):'')+'<span class="og">“'+esc(o.g)+'”</span></button>';
     });
     h += '</div>';
     if(R.answered){

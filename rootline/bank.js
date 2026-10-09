@@ -12,7 +12,7 @@
    Vanilla JS, no dependencies. */
 (function(){
 "use strict";
-var GAME_VERSION = "rootline-helpful-5";
+var GAME_VERSION = "word-stories-1";
 var CFG = window.ROOTLINE_BANK_CONFIG || {};                         /* see bank-config.js (prod switch lives there) */
 var DEFAULT_API = CFG.api || "https://rootline-bank-staging.ben-e22.workers.dev";
 var HOSTS = CFG.hosts || ["rootline-bank-staging.ben-e22.workers.dev", "rootline-bank.ben-e22.workers.dev"];

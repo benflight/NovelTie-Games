@@ -18,7 +18,10 @@
   /* languages whose native script a voice of that code can't read: speak the romanization instead */
   var ROM_ONLY = {"Hokkien":1,"Hokkien (Min Chinese)":1,"Middle Chinese":1,"Coptic":1};
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
-  function key(t, l){ return String(t)+"|"+String(l); }
+  /* bank rounds use codes (en, grc, la...); recordings and help are keyed by language names */
+  var NAME = {en:"English", grc:"Ancient Greek", la:"Latin", es:"Spanish", fr:"French", de:"German", el:"Greek", ru:"Russian", sa:"Sanskrit", hi:"Hindi"};
+  function langName(l){ return NAME[l] || l; }
+  function key(t, l){ return String(t)+"|"+String(langName(l)); }
   function info(t, l){ return D.help[key(t,l)] || null; }
   function voices(){ try{ return (window.speechSynthesis && speechSynthesis.getVoices()) || []; }catch(_){ return []; } }
   try{ if(window.speechSynthesis && "onvoiceschanged" in speechSynthesis) speechSynthesis.addEventListener("voiceschanged", function(){}); voices(); }catch(_){}
@@ -51,6 +54,7 @@
     }catch(_){ note("Couldn't play that one on this device."); return false; }
   }
   function say(text, lang, pool){
+    lang = langName(lang);
     var h = info(text, lang), tr = h && h.tr, code = TTS[lang] || (lang && /^[a-z]{2,3}$/.test(lang) ? lang : null);
     var native = String(text).replace(/^\*/, "");
     function tts(){
@@ -71,8 +75,9 @@
   function btn(text, lang, opts){
     if(text == null || text === "" || text === "?") return "";
     opts = opts || {};
-    var a = !opts.pool && D.audio[key(text, lang)];
-    return '<span class="say" role="button" tabindex="0" aria-label="Hear '+esc(text)+'" data-say="'+esc(text)+'" data-sl="'+esc(lang||"")+'"'+(opts.pool?' data-pool="1"':'')+
+    var noRec = opts.pool || opts.blind;   /* blind: an unanswered choice; same markup for every choice, device voice only */
+    var a = !noRec && D.audio[key(text, lang)];
+    return '<span class="say" role="button" tabindex="0" aria-label="Hear '+esc(text)+'" data-say="'+esc(text)+'" data-sl="'+esc(lang||"")+'"'+(noRec?' data-pool="1"':'')+
       ' title="'+(a ? esc("Recording: "+(a[2]||"public domain")+", "+a[1]+" (Wikimedia Commons). Tap to hear; credit link appears below.") : "Hear it (device voice)")+'">🔊</span>';
   }
   /* romanization · respelling, and (when hook:true) the memory hook */
