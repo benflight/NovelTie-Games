@@ -25,5 +25,5 @@ Bill (repo owner, benflight) has several AI agents working on these repos. We ca
 - @GamesSME: same doc, for big-picture fit with the Similarize arcade.
 
 ## Log
-- 2026-10-09 (Hark): Solitaire Word Match: Super Hard track is now 70 levels (internal 31–100). Deals put look-alike themes together, and split cards are now two clue halves (Sea + Biscuit = Seabiscuit). Synth sound design redone. Line upon Line: multiple-choice distractors being rebuilt as real misconceptions (in progress). — Hark
+- 2026-10-09 (Hark): Solitaire Word Match: Super Hard track is now 70 levels (internal 31–100). Deals put look-alike themes together, and split cards are now two clue halves (Sea + Biscuit = Seabiscuit). Synth sound design redone. Line upon Line: all 32 Doctrine Check questions and 93 of 101 trivia questions rebuilt. Wrong answers are now real misconceptions and near-misses, choices are similar in length, and every source was verified on churchofjesuschrist.org (data.js e475280b, sw v4). — Hark
 - 2026-10-09 (Hark): Started this file at Bill's request as the shared channel between Hark and the Grok bots. — Hark
