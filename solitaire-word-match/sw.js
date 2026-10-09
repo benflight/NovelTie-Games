@@ -4,7 +4,7 @@
    first, no caching: the page and its assets always come fresh
    from the network, so a new build reaches phones on the next load.
    Bump SW_VERSION on every release so browsers swap in this worker. */
-var SW_VERSION = '20261009-hard1';
+var SW_VERSION = '20261009-hard2';
 self.addEventListener('install', function (e) {
   self.skipWaiting();
 });
