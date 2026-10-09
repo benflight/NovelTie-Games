@@ -14,11 +14,13 @@
     staging: { api: "https://rootline-bank-staging.ben-e22.workers.dev", turnstileSiteKey: TURNSTILE_SITE_KEY },
     prod:    { api: "https://rootline-bank.ben-e22.workers.dev",         turnstileSiteKey: TURNSTILE_SITE_KEY }
   };
-  var USE = "staging";   /* PROD SWITCH */
+  /* PROD SWITCH (Webmaster, 2026-10-09, Ben approved): prod on games.noveltie.com, staging everywhere else */
+  var PROD_PAGES = ["games.noveltie.com"];
+  function envFor(pageHost) { return PROD_PAGES.indexOf(pageHost) >= 0 ? "prod" : "staging"; }
   var apiHosts = ["rootline-bank-staging.ben-e22.workers.dev", "rootline-bank.ben-e22.workers.dev"];
   var DEV_PAGES = ["localhost", "127.0.0.1", "rootline-game-staging.ben-e22.workers.dev"];
   function build(pageHost) {
-    var dev = DEV_PAGES.indexOf(pageHost) >= 0;
+    var dev = DEV_PAGES.indexOf(pageHost) >= 0, USE = envFor(pageHost);
     return { env: USE, api: ENVS[USE].api, turnstileSiteKey: ENVS[USE].turnstileSiteKey,
              hosts: apiHosts.concat(dev ? ["localhost", "127.0.0.1"] : []) };
   }
