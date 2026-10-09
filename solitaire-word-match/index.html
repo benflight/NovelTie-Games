@@ -13,7 +13,7 @@
     <link rel="manifest" href="assets/manifest.json" />
     <link rel="apple-touch-icon" href="assets/icon-180.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <meta name="swm-build" content="20261008-play3" />
+    <meta name="swm-build" content="20261008-play4" />
     <title>Solitaire Word Match</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -289,10 +289,12 @@
         background:
           repeating-conic-gradient(#d8d2c2 0% 25%, #f4efe2 0% 50%) 0 0/16px 16px;
       }
-      .halfZone .halfIcon{ position:absolute; left:50%; width:78%; height:200%; transform:translateX(-50%); display:grid; place-items:center; z-index:2; filter:drop-shadow(0 2px 3px rgba(0,0,0,.2)); }
-      .halfZone.topH .halfIcon{ top:0; align-items:start; }
-      .halfZone.botH .halfIcon{ bottom:0; align-items:end; }
-      .halfZone .halfIcon svg{ width:100%; height:50%; }
+      .halfZone.present{ background:linear-gradient(180deg,#fff6dc,#f6e3b4); }
+      /* word sits in the top strip so it stays readable when cards overlap */
+      .card.plainCard .footArt{ display:none; }
+      .card.picCard{ display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
+      .card .pic{ position:relative; z-index:2; margin-top:calc(var(--cw)*.05); font-size:calc(var(--cw)*.46); line-height:1;
+        font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; filter:drop-shadow(0 2px 2px rgba(0,0,0,.18)); }
       .halfWord{
         position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:4;
         background:linear-gradient(180deg,#fffefa,#fff3d6); border:1.5px dashed #b9a67f; color:var(--ink);
@@ -617,7 +619,22 @@
       { id:"bakery",  label:"Bakery",      crown:"Bakery",   seq:false, hue:"#b5654d", icon:"cake",    members:["Cake","Cookie","Pie","Tart"] },
       { id:"birds",   label:"Birds",       crown:"Nest",     seq:false, hue:"#6f9e7a", icon:"egg",     members:["Owl","Robin","Heron","Finch"] }
     ];
-    const FAM = {}; FAMILIES.forEach(f => FAM[f.id] = f);
+    // picture-only categories: members show just a picture (emoji), no word;
+    // the word is kept for screen readers only. excl: word families that
+    // would be confusing in the same deal.
+    const PIC_FAMILIES = [
+      { id:"picAnimals",  label:"Wild Animals", crown:"Zoo",        seq:false, pic:true, excl:["farm","birds"],
+        members:[["Lion","🦁"],["Elephant","🐘"],["Giraffe","🦒"],["Monkey","🐒"],["Zebra","🦓"]] },
+      { id:"picFruit",    label:"Fruit",        crown:"Fruit Bowl", seq:false, pic:true, excl:["orchard"],
+        members:[["Banana","🍌"],["Grapes","🍇"],["Strawberry","🍓"],["Pineapple","🍍"],["Watermelon","🍉"]] },
+      { id:"picVehicles", label:"Vehicles",     crown:"Garage",     seq:false, pic:true, excl:["travel","space"],
+        members:[["Car","🚗"],["Bus","🚌"],["Bicycle","🚲"],["Airplane","✈️"],["Tractor","🚜"]] },
+      { id:"picSports",   label:"Sports Balls", crown:"Locker",     seq:false, pic:true, excl:[],
+        members:[["Soccer ball","⚽"],["Basketball","🏀"],["Baseball","⚾"],["Tennis ball","🎾"],["Football","🏈"]] }
+    ];
+    const FAM = {}; FAMILIES.concat(PIC_FAMILIES).forEach(f => FAM[f.id] = f);
+    const Q = (e, dst) => (e && e.pic) ? (dst ? "the matching card" : "that picture") : "“" + ((e && e.word) || "card") + "”";
+    const Qc = e => { const q = Q(e); return q.charAt(0).toUpperCase() + q.slice(1); };
     const LOCK_COLORS = [
       { id:"red",    hex:"#c0453e", name:"red" },
       { id:"violet", hex:"#7456a0", name:"purple" },
@@ -641,7 +658,8 @@
       const seqCount   = n < 4 ? 0 : n < 16 ? 1 : 2;
       const locks      = n < 7 ? 0 : n < 13 ? 1 : n < 23 ? 2 : 3;
       const halves     = n < 10 ? 0 : n < 20 ? 1 : 2;
-      return { n, famCount, membersPer, seqCount, locks, halves, diff: diffOf(n) };
+      const pics       = n < 11 ? 0 : n < 20 ? 1 : 2;   // picture-only categories
+      return { n, famCount, membersPer, seqCount, locks, halves, pics, diff: diffOf(n) };
     }
 
     /* ================= card registry & state helpers ================= */
@@ -651,7 +669,7 @@
       const r = REG[id]; if(!r) return { kind:"member" };
       const f = st.form[id] || r.kind;
       if(r.kind === "half" && f === "member") return { kind:"member", fam:r.fam, word:r.whole, rank:r.wrank };
-      return { kind:r.kind, fam:r.fam, word:r.word, rank:r.rank, color:r.color, pair:r.pair, side:r.side };
+      return { kind:r.kind, fam:r.fam, word:r.word, pic:r.pic, rank:r.rank, color:r.color, pair:r.pair, side:r.side };
     }
     const topId = (st, ci) => { const c = st.cols[ci]; return c.length ? c[c.length-1] : null; };
     function isFaceUp(st, ci, idx){ const id = st.cols[ci][idx]; return idx >= st.down[ci] && !st.locked[id]; }
@@ -673,6 +691,36 @@
     }
 
     /* ================= move rules (shared by UI, hint, solver) ================= */
+    // Joined runs: face-up, unlocked cards of one category stacked on each
+    // other in a column (members, plus the crown that may sit on top) travel
+    // as one group. Picking any card of the run picks up the whole run.
+    // Split halves and keys never join a run.
+    const joinable = e => e.kind === "member" || e.kind === "crown";
+    function runStart(st, ci, idx){
+      const c = st.cols[ci];
+      if(st.locked[c[idx]]) return idx;
+      const e0 = eff(st, c[idx]);
+      if(!joinable(e0)) return idx;
+      let s = idx;
+      while(s - 1 >= st.down[ci] && !st.locked[c[s - 1]]){
+        const e = eff(st, c[s - 1]);
+        if(!joinable(e) || e.fam !== e0.fam || e.kind === "crown") break;
+        s--;
+      }
+      return s;
+    }
+    // how many cards from effs[start] on can go onto a pile that already
+    // holds L cards (sequence families must follow rank order)
+    function bankCount(fam, effs, start, L){
+      let n = 0;
+      for(let i = start; i < effs.length; i++){
+        const e = effs[i];
+        if(e.kind !== "member" || e.fam !== fam) break;
+        if(FAM[fam].seq && e.rank !== L + n) break;
+        n++;
+      }
+      return n;
+    }
     function depositable(st, fam, e){
       if(e.kind !== "member" || e.fam !== fam) return false;
       if(FAM[fam].seq) return e.rank === (st.banked[fam]||[]).length;
@@ -686,35 +734,27 @@
       if(target.zone === "found"){
         const fam = st.found[target.slot];
         if(!fam){
-          if(b.kind !== "crown") return { ok:false, reason: b.kind === "member" ? ("“" + b.word + "” needs its crown card in a top slot first") : "Only a crown card opens a slot" };
-          // crown sitting on a pile of its own family: the whole group moves
-          // together, flipping so the crown lands on the bottom
-          if(drag.zone === "col" && cards.length === 1 && drag.idx === st.cols[drag.col].length - 1){
-            const ci = drag.col, colArr = st.cols[ci], pile = [];
-            for(let j = drag.idx - 1; j >= 0; j--){
-              if(j < st.down[ci] || st.locked[colArr[j]]) break;
-              const e = eff(st, colArr[j]);
-              if(e.kind !== "member" || e.fam !== b.fam) break;
-              pile.unshift(colArr[j]);
-            }
-            if(pile.length){
-              const inOrder = !FAM[b.fam].seq || pile.every((id, i) => eff(st, id).rank === i + 1);
-              if(inOrder) return { ok:true, move:{ kind:"bankPile", src:drag, col:ci, from:drag.idx - pile.length, slot:target.slot, fam:b.fam, ids:pile, top:cards[0] } };
-              return { ok:false, reason:"Sequence: the pile under “" + b.word + "” isn't in order, so it can't move as a group" };
-            }
+          // a run with its crown on top: the whole group banks, flipping so the
+          // crown lands on the bottom of the new pile
+          const last = effs[effs.length - 1];
+          if(drag.zone === "col" && effs.length > 1 && last.kind === "crown"
+             && effs.slice(0, -1).every(e => e.kind === "member" && e.fam === last.fam)){
+            const pile = cards.slice(0, -1);
+            const inOrder = !FAM[last.fam].seq || pile.every((id, i) => eff(st, id).rank === i + 1);
+            if(inOrder) return { ok:true, move:{ kind:"bankPile", src:drag, col:drag.col, from:drag.idx, slot:target.slot, fam:last.fam, ids:pile, top:cards[cards.length - 1] } };
+            return { ok:false, reason:"Sequence: the cards under the “" + last.word + "” crown aren't in order, so they can't go up as a group" };
           }
-          let count = 1;
-          while(count < effs.length && depositable(st, b.fam, effs[count])) count++;
+          if(b.kind !== "crown") return { ok:false, reason: b.kind === "member" ? (Qc(b) + " needs its crown card in a top slot first") : "Only a crown card opens a slot" };
+          const count = 1 + bankCount(b.fam, effs, 1, 1);
           return { ok:true, move:{ kind:"bank", src:drag, slot:target.slot, fam:b.fam, count } };
         }
-        let count = 0;
-        while(count < effs.length && depositable(st, fam, effs[count])) count++;
+        const count = bankCount(fam, effs, 0, (st.banked[fam]||[]).length);
         if(count > 0) return { ok:true, move:{ kind:"bank", src:drag, slot:target.slot, fam, count } };
         if(b.kind === "key") return { ok:false, reason:"Keys only open locks" };
         if(b.kind === "half") return { ok:false, reason:"Join that half with its match first" };
         if(b.fam === fam && FAM[fam].seq)
-          return { ok:false, reason:"Sequence: “" + b.word + "” isn't next on this pile" };
-        return { ok:false, reason:"“" + b.word + "” doesn't belong on that pile" };
+          return { ok:false, reason:"Sequence: " + Q(b) + " isn't next on this pile" };
+        return { ok:false, reason:Qc(b) + " doesn't belong on that pile" };
       }
       if(target.zone === "col"){
         const ci = target.col;
@@ -740,10 +780,10 @@
           return { ok:false, reason:"Crown cards go in the top slots — or onto a pile of their own family" };
         }
         if(t.kind === "key" || t.kind === "half") return { ok:false, reason:"Can't stack on that card" };
-        if(t.kind === "crown") return { ok:false, reason:"Put the “" + t.word + "” card in a top slot before stacking on it" };
-        if(b.fam !== t.fam) return { ok:false, reason:"“" + b.word + "” doesn't match “" + t.word + "”" };
+        if(t.kind === "crown") return { ok:false, reason:"Put the " + Q(t) + " card in a top slot before stacking on it" };
+        if(b.fam !== t.fam) return { ok:false, reason:Qc(b) + " doesn't match " + Q(t, true) };
         if(FAM[b.fam].seq && b.rank !== t.rank + 1){
-          return { ok:false, reason:"Sequence: “" + b.word + "” can't follow “" + t.word + "” yet" };
+          return { ok:false, reason:"Sequence: " + Q(b) + " can't follow " + Q(t, true) + " yet" };
         }
         return { ok:true, move:{ kind:"stack", src:drag, col:ci } };
       }
@@ -811,6 +851,7 @@
         const c = st.cols[ci];
         for(let idx=st.down[ci]; idx<c.length; idx++){
           if(!isFaceUp(st, ci, idx)) continue;
+          if(runStart(st, ci, idx) !== idx) continue;   // the run moves as one group
           let clean = true;
           for(let j=idx; j<c.length; j++) if(st.locked[c[j]]){ clean = false; break; }
           if(clean) drags.push({ zone:"col", col:ci, idx });
@@ -876,6 +917,13 @@
       const pick = arr => arr.splice(Math.floor(rng()*arr.length), 1)[0];
       const fams = [];
       for(let i=0; i<cfg.seqCount && seqPool.length; i++) fams.push(pick(seqPool));
+      if(cfg.pics){
+        const picPool = PIC_FAMILIES.slice();
+        for(let i=0; i<cfg.pics && picPool.length; i++) fams.push(pick(picPool));
+        const ex = new Set(); fams.forEach(f => (f.excl || []).forEach(x => ex.add(x)));
+        otherPool = otherPool.filter(f => !ex.has(f.id));
+        seqPool = seqPool.filter(f => !ex.has(f.id));
+      }
       const rest = otherPool.concat(seqPool);
       while(fams.length < cfg.famCount && rest.length) fams.push(pick(rest));
       const cards = [];
@@ -889,6 +937,7 @@
         cards.push(cid);
         members.forEach((w, i) => {
           const id = nid();
+          if(fam.pic){ REG[id] = { kind:"member", fam:fam.id, word:w[0], pic:w[1], rank:i+1 }; cards.push(id); return; }
           REG[id] = { kind:"member", fam:fam.id, word:w, rank:i+1 };
           cards.push(id);
         });
@@ -942,7 +991,7 @@
       }
       // half cards: split member cards sitting in columns; partner half into the stock
       const halfable = [];
-      st.cols.forEach(c => c.forEach(id => { if(REG[id].kind === "member" && !st.locked[id]) halfable.push(id); }));
+      st.cols.forEach(c => c.forEach(id => { if(REG[id].kind === "member" && !st.locked[id] && !REG[id].pic) halfable.push(id); }));
       for(let H=0; H<cfg.halves && halfable.length; H++){
         const id = halfable.splice(Math.floor(rng()*halfable.length), 1)[0];
         const pair = "p" + H + "_" + id;
@@ -1271,11 +1320,9 @@
       }
       if(e.kind === "half"){
         el.classList.add("halfCard");
-        const iconSvg = svgIcon(fam.icon, 1.7);
         const topPresent = r.side === "top";
         const zone = (present, isTop) =>
-          '<div class="halfZone ' + (isTop ? "topH" : "botH") + (present ? "" : " missing") + '" style="' + (present ? "background:color-mix(in srgb," + fam.hue + " 38%, #fff6e0);color:" + fam.hue : "") + '">' +
-            (present ? '<span class="halfIcon">' + iconSvg + '</span>' : "") + '</div>';
+          '<div class="halfZone ' + (isTop ? "topH" : "botH") + (present ? " present" : " missing") + '"></div>';
         el.innerHTML = zone(topPresent, true) + zone(!topPresent, false) +
           '<span class="halfWord">' + e.word + '</span>';
         return el;
@@ -1286,7 +1333,13 @@
       let tab;
       if(isCrown) tab = '<span class="artTab crownTab">' + svgIcon(fam.seq ? "steps" : "crown") + '</span>';
       else if(fam.seq) tab = '<span class="artTab seqTab">' + svgIcon("steps") + '</span>';
-      else tab = '<span class="artTab" style="background:color-mix(in srgb,' + fam.hue + ' 22%, #fff6e0);color:' + fam.hue + '">' + svgIcon(fam.icon) + '</span>';
+      else { tab = ""; el.classList.add("plainCard"); }   // plain word cards carry no art: nothing may hint at the category
+      if(e.pic){
+        el.classList.add("picCard");
+        el.setAttribute("aria-label", "Picture: " + e.word);
+        el.innerHTML = '<div class="pic" aria-hidden="true">' + e.pic + '</div>';
+        return el;
+      }
       const wlen = (e.word || "").length;
       const wfs = wlen >= 8 ? ' style="font-size:calc(var(--cw)*.175)"' : wlen === 7 ? ' style="font-size:calc(var(--cw)*.2)"' : "";
       el.innerHTML =
@@ -1562,17 +1615,18 @@
     function describeMove(st, mv){
       const cards = dragCards(st, mv.src).map(id => eff(st, id));
       const b = cards[0];
-      if(mv.kind === "bankPile") return "Drag the " + b.word + " crown into an empty top slot — the pile under it comes along";
+      if(mv.kind === "bankPile") return "Drag the " + eff(st, mv.top).word + " crown group into an empty top slot — the cards under it come along";
       if(mv.kind === "bank"){
         if(eff(st, dragCards(st, mv.src)[0]).kind === "crown") return "Drag the " + b.word + " crown into an empty top slot";
-        return "Bank “" + b.word + "” onto the glowing top pile";
+        return (mv.count > 1 ? "Bank the group starting with " : "Bank ") + Q(b) + " onto the glowing top pile";
       }
       if(mv.kind === "unlock") return "Drag the " + lockColor(st.locked[mv.lockCard]).name + " key onto its lock";
-      if(mv.kind === "merge") return "Join the two halves of “" + b.word + "”";
+      if(mv.kind === "merge") return "Join the two halves of " + Q(b);
       if(mv.kind === "stack"){
-        if(!st.cols[mv.col].length) return "Move “" + b.word + "” to the empty column";
+        const grp = dragCards(st, mv.src).length > 1 ? "the group starting with " : "";
+        if(!st.cols[mv.col].length) return "Move " + grp + Q(b) + " to the empty column";
         const t = eff(st, topId(st, mv.col));
-        return "Put “" + b.word + "” on “" + t.word + "”";
+        return "Put " + grp + Q(b) + " on " + Q(t, true);
       }
       return "Cycle the deck to find the next card";
     }
@@ -1690,8 +1744,9 @@
       if(zone === "col"){
         const ci = +el.dataset.col, idx = +el.dataset.idx, st = G.st;
         if(!isFaceUp(st, ci, idx)) return null;
-        for(let j=idx; j<st.cols[ci].length; j++) if(st.locked[st.cols[ci][j]]) return null;
-        return { zone:"col", col:ci, idx };
+        const s0 = runStart(st, ci, idx);
+        for(let j=s0; j<st.cols[ci].length; j++) if(st.locked[st.cols[ci][j]]) return null;
+        return { zone:"col", col:ci, idx:s0 };
       }
       return null;
     }
@@ -1708,21 +1763,6 @@
       const st = G.st;
       const ids = dragCards(st, drag.src);
       drag.ids = ids;
-      // crown resting on its own family's pile: carry the whole group in hand
-      if(ids.length === 1 && drag.src.zone === "col"){
-        const e0 = eff(st, ids[0]), ci = drag.src.col, colArr = st.cols[ci];
-        if(e0.kind === "crown" && drag.src.idx === colArr.length - 1){
-          const pile = [];
-          for(let j = drag.src.idx - 1; j >= 0; j--){
-            if(j < st.down[ci] || st.locked[colArr[j]]) break;
-            const e = eff(st, colArr[j]);
-            if(e.kind !== "member" || e.fam !== e0.fam) break;
-            pile.unshift(colArr[j]);
-          }
-          if(pile.length && (!FAM[e0.fam].seq || pile.every((id, i) => eff(st, id).rank === i + 1)))
-            drag.ids = ids.concat(pile.slice().reverse());
-        }
-      }
       // the cards in hand are drawn as copies in a fixed layer on <body>, so
       // they aren't clipped by the scrolling board and never sit between the
       // finger and the drop target (the layer ignores pointer hit-testing);
@@ -1761,13 +1801,11 @@
     function autoBank(srcDrag){
       const ids = dragCards(G.st, srcDrag);
       if(!ids.length) return false;
-      const e0 = eff(G.st, ids[0]);
-      if(e0.kind === "crown"){
-        const s = G.st.found.indexOf(null);
-        if(s >= 0){ const r = canDrop(G.st, srcDrag, { zone:"found", slot:s }); if(r.ok){ doMove(r.move); return true; } }
+      const slots = [0,1,2,3,4].sort((a, b) => (G.st.found[a] ? 0 : 1) - (G.st.found[b] ? 0 : 1));
+      for(const s of slots){
+        const r = canDrop(G.st, srcDrag, { zone:"found", slot:s });
+        if(r.ok){ doMove(r.move); return true; }
       }
-      const s2 = G.st.found.indexOf(e0.fam);
-      if(s2 >= 0){ const r = canDrop(G.st, srcDrag, { zone:"found", slot:s2 }); if(r.ok){ doMove(r.move); return true; } }
       return false;
     }
     const gameEl = $("#gameScreen");
@@ -2019,7 +2057,7 @@
   var btn = document.getElementById('installBtn');
   var deferred = null;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=20261008-play3', { scope: './' }).catch(function(){});
+    navigator.serviceWorker.register('sw.js?v=20261008-play4', { scope: './' }).catch(function(){});
   }
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
