@@ -99,7 +99,12 @@
       .regionHead h2{ font-size:19px; margin:0; font-weight:600; letter-spacing:.02em; text-shadow:0 2px 4px rgba(0,0,0,.35); }
       .regionHead span{ font-size:13px; font-weight:600; padding:2px 9px; border-radius:999px; color:#fff; }
       .diff-Easy{ background:#3d9d63; } .diff-Normal{ background:#3d7ea6; }
-      .diff-Hard{ background:#d07a2d; } .diff-Expert{ background:#b03a48; }
+      .diff-Hard{ background:#d07a2d; } .diff-Expert{ background:#b03a48; } .diff-SuperHard{ background:#5b2a86; }
+      .trackTabs{ display:flex; gap:8px; margin:14px 2px 0; }
+      .trackTabs button{ flex:1; border:0; border-radius:999px; padding:9px 6px; font:inherit; font-size:15px; font-weight:600; color:#fff; background:rgba(0,0,0,.22); cursor:pointer; }
+      .trackTabs button.on{ background:#fff6d3; color:#5a3d00; box-shadow:0 2px 6px rgba(0,0,0,.3); }
+      .trackTabs button.hardTab.on{ background:#5b2a86; color:#fff; }
+      .card .word.multi{ height:44%; }
       .lvlGrid{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; }
       .lvlBtn{
         border:none; border-radius:14px; padding:9px 2px 7px; position:relative;
@@ -432,6 +437,7 @@
             </button>
           </div>
         </div>
+        <div class="trackTabs" id="trackTabs"><button data-track="classic">Classic</button><button class="hardTab" data-track="hard">Super Hard</button></div>
         <div class="mapProg" id="mapProg"></div>
         <div id="levelGrid"></div>
         <p class="mapNote">Drag matching word cards together, crown cards open the top slots, and every card home wins the level. No ads, no timers — just the puzzle. Your progress saves on this device as you play.</p>
@@ -634,7 +640,228 @@
       { id:"picSports",   label:"Sports Balls", crown:"Locker",     seq:false, pic:true, excl:[],
         members:[["Soccer ball","⚽"],["Basketball","🏀"],["Baseball","⚾"],["Tennis ball","🎾"],["Football","🏈"]] }
     ];
+    /* ================= Super Hard word families ================= */
+    // Abstract, Connections-style categories. Every word belongs to exactly
+    // one family; families that could make a card ambiguous never share a
+    // deal (excl, plus automatic checks for hidden words, palindromes,
+    // silent letters and compound words — see hardConflicts()).
+    // seq families: a window of the chain is dealt; its first word is the
+    // crown and the rest follow in order.
+    const HARD_FAMILIES = [
+      // ---------- sequences ----------
+      { id:"hGreek",  crown:"Alpha", seq:true, chain:["Alpha","Beta","Gamma","Delta","Epsilon","Zeta","Eta","Theta","Iota","Kappa","Lambda","Mu","Nu","Xi"], excl:["hNato"] },
+      { id:"hHebrew", seq:true, chain:["Aleph","Bet","Gimel","Dalet","He","Vav","Zayin","Het","Tet","Yod","Kaf","Lamed"] },
+      { id:"hNato",   seq:true, chain:["Alfa","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India","Juliett","Kilo","Lima"], excl:["hGreek","hSI"] },
+      { id:"hTaxon",  seq:true, chain:["Domain","Kingdom","Phylum","Class","Order","Family","Genus","Species"] },
+      { id:"hMohs",   seq:true, chain:["Talc","Gypsum","Calcite","Fluorite","Apatite","Feldspar","Quartz","Topaz","Corundum","Diamond"], excl:["hGems"] },
+      { id:"hTempo",  seq:true, chain:["Largo","Adagio","Andante","Moderato","Allegro","Presto","Prestissimo"] },
+      { id:"hPlanets",seq:true, chain:["Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune"], excl:["hRomanGods"] },
+      { id:"hRoman",  seq:true, chain:["I","V","X","L","C","D","M"] },
+      { id:"hSolfege",seq:true, chain:["Do","Re","Mi","Fa","Sol","La","Ti"] },
+      { id:"hBible",  seq:true, chain:["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth"] },
+      { id:"hPrimes", seq:true, chain:["2","3","5","7","11","13","17","19","23","29"] },
+      { id:"hSI",     seq:true, chain:["Kilo","Mega","Giga","Tera","Peta","Exa","Zetta","Yotta"], excl:["hNato"] },
+      { id:"hSpectrum",seq:true, chain:["Radio","Microwave","Infrared","Visible","Ultraviolet","X-ray","Gamma ray"] },
+      { id:"hAtmos",  seq:true, chain:["Troposphere","Stratosphere","Mesosphere","Thermosphere","Exosphere"] },
+      { id:"hPeerage",seq:true, chain:["Baron","Viscount","Earl","Marquess","Duke"] },
+
+      // ---------- wordplay ----------
+      { id:"hHidAnimal", kind:"hidAnimal", crown:"Hidden Animal",
+        members:["Scatter","Pigment","Ratify","Crowbar","Bathe","Cowardice","Henchman","Ramble","Emulate","Apex","Swanky","Antique"] },
+      { id:"hHidNumber", kind:"hidNumber", crown:"Hidden Number",
+        members:["Often","Weight","Canine","Freight","Throne","Phone","Bitten","Honey","Listen","Height","Atone"] },
+      { id:"hPalin", kind:"palin", crown:"Palindrome",
+        members:["Racecar","Level","Kayak","Rotor","Civic","Refer","Madam","Radar","Stats","Redder","Deified"] },
+      { id:"hSilent", kind:"silent", crown:"Silent Start",
+        members:["Knight","Gnome","Psalm","Pneumonia","Wrist","Honest","Mnemonic","Ptarmigan","Knee","Wreck","Gnarled"] },
+
+      // ---------- compounds ----------
+      { id:"hPaper", crown:"___ Paper", compound:"paper",
+        members:["Tissue","Sand","Wall","Fly","Rice","Wax","Toilet","Tracing","Crepe","Blotting","Litmus"] },
+      { id:"hMoon", crown:"Moon ___", compound:"moon",
+        members:["Light","Shine","Walk","Beam","Struck","Lit","Rise","Shot","Scape","Dust"] },
+      { id:"hHorse", crown:"___ Horse", compound:"horse",
+        members:["Sea","Trojan","Hobby","Rocking","Work","Race","Clothes","Dark","War","Pack"] },
+      { id:"hGolden", crown:"Golden ___", compound:"golden",
+        members:["Ratio","Gate","Retriever","Fleece","Rule","Calf","Globe","Hour","Parachute","Mean"] },
+      { id:"hCast", crown:"Cast a ___", compound:"cast",
+        members:["Spell","Vote","Net","Shadow","Doubt","Glance","Ballot","Line","Pall"] },
+      { id:"hBreak", crown:"Break ___", compound:"break",
+        members:["Record","Silence","Ice","Promise","Bread","Fast","Even","Ground","Camp","Ranks"] },
+
+      // ---------- has a / things with ----------
+      { id:"hKeys", crown:"Has Keys", members:["Piano","Map","Lock","Florida","Typewriter","Cipher","Accordion","Organ","Laptop","Harpsichord"] },
+      { id:"hTeeth", crown:"Has Teeth", members:["Comb","Saw","Zipper","Gear","Rake","Cog","Sprocket","Chainsaw","Bear Trap"], excl:["hHorse","hNahuatl","hDinos","hYoung","hMyth","hHorses","hCode","hSpine"] },
+      { id:"hSpine", crown:"Has a Spine", members:["Book","Cactus","Hedgehog","Porcupine","Urchin","Echidna","Lionfish"], excl:["hNahuatl","hDinos","hYoung","hMyth","hHorses","hCode","hBones","hShips","hConstell","hGroup"] },
+
+      // ---------- where words come from ----------
+      { id:"hArabic", crown:"From Arabic", members:["Algebra","Alcohol","Sofa","Coffee","Zero","Cotton","Magazine","Admiral","Alchemy","Sugar"] },
+      { id:"hNahuatl", crown:"From Nahuatl", members:["Chocolate","Tomato","Avocado","Coyote","Chili","Guacamole","Ocelot","Axolotl","Peyote","Mesquite"] },
+      { id:"hIndia", crown:"From India", members:["Shampoo","Jungle","Bungalow","Thug","Loot","Pundit","Avatar","Karma","Juggernaut","Dinghy","Cot"] },
+      { id:"hNorse", crown:"From Old Norse", members:["Sky","Egg","Knife","Window","Ransack","Berserk","Husband","Law","Anger","Ugly"] },
+      { id:"hJapan", crown:"From Japanese", members:["Tycoon","Emoji","Karaoke","Tsunami","Futon","Honcho","Origami","Bonsai","Sudoku","Kimono"] },
+      { id:"hDutch", crown:"From Dutch", members:["Cookie","Yacht","Boss","Landscape","Cruise","Skipper","Brandy","Easel","Coleslaw","Decoy"] },
+      { id:"hEponym", crown:"Named for a Person", members:["Sandwich","Cardigan","Leotard","Saxophone","Diesel","Guillotine","Boycott","Silhouette","Nicotine","Mausoleum"] },
+
+      // ---------- ancient world ----------
+      { id:"hEgypt", crown:"Egyptian Gods", members:["Ra","Osiris","Isis","Anubis","Horus","Thoth","Set","Ptah","Hathor","Sobek"] },
+      { id:"hNorseGods", crown:"Norse Gods", members:["Odin","Thor","Loki","Freya","Tyr","Baldur","Heimdall","Frigg","Njord","Hel"] },
+      { id:"hRomanGods", crown:"Roman Gods", members:["Juno","Minerva","Vesta","Ceres","Diana","Vulcan","Janus","Bacchus","Apollo","Cupid"] },
+      { id:"hMuses", crown:"The Muses", members:["Clio","Calliope","Erato","Euterpe","Thalia","Urania","Polyhymnia","Terpsichore","Melpomene"] },
+      { id:"hAmericas", crown:"Ancient Americas", members:["Maya","Aztec","Olmec","Toltec","Zapotec","Inca","Moche","Nazca","Mixtec"] },
+      { id:"hScripts", crown:"Writing Systems", members:["Cuneiform","Hieroglyphs","Runes","Ogham","Hangul","Cyrillic","Devanagari","Linear B","Glagolitic","Kana"] },
+      { id:"hDeadLang", crown:"Dead Languages", members:["Latin","Sumerian","Akkadian","Gothic","Hittite","Etruscan","Coptic","Avestan","Ugaritic","Phoenician"] },
+      { id:"hConlang", crown:"Invented Languages", members:["Esperanto","Klingon","Quenya","Sindarin","Lojban","Dothraki","Ido","Volapük","Interlingua","Toki Pona"] },
+      { id:"hWonders", crown:"Seven Wonders", members:["Giza","Babylon","Rhodes","Olympia","Ephesus","Alexandria"] },
+      { id:"hRivers", crown:"Great Rivers", members:["Nile","Tigris","Euphrates","Indus","Ganges","Tiber","Danube","Yangtze","Volga","Thames"] },
+      { id:"hRuins", crown:"Ruined Cities", members:["Troy","Pompeii","Petra","Angkor","Ur","Carthage","Nineveh","Knossos","Mycenae","Palmyra"] },
+      { id:"hSchools", crown:"Greek Schools", members:["Stoic","Cynic","Epicurean","Skeptic","Sophist","Peripatetic","Eleatic","Pythagorean"] },
+      { id:"hMoney", crown:"Old Money", members:["Drachma","Denarius","Ducat","Florin","Shekel","Doubloon","Talent","Sesterce","Guinea","Groat"] },
+      { id:"hMeasure", crown:"Old Measures", members:["Furlong","Fathom","Cubit","League","Chain","Rod","Span","Hogshead","Bushel","Peck"] },
+      { id:"hArms", crown:"Old Weapons", members:["Halberd","Glaive","Trebuchet","Mace","Flail","Falchion","Claymore","Gladius","Ballista","Pike"] },
+      { id:"hRound", crown:"Round Table", members:["Lancelot","Gawain","Galahad","Percival","Tristan","Bedivere","Gareth","Mordred","Bors","Kay"] },
+      { id:"hNephite", crown:"Book of Mormon Prophets", members:["Nephi","Alma","Moroni","Abinadi","Helaman","Ether","Mormon","Benjamin","Enos","Jarom"] },
+      { id:"hApostles", crown:"The Twelve", excl:["hBible"], members:["Peter","Andrew","James","John","Philip","Bartholomew","Thomas","Matthew","Thaddeus","Judas"] },
+      { id:"hMyth", crown:"Mythic Beasts", members:["Griffin","Basilisk","Chimera","Manticore","Kraken","Hydra","Wyvern","Sphinx","Golem","Banshee"] },
+
+      // ---------- language & letters ----------
+      { id:"hFallacy", crown:"Fallacies", members:["Strawman","Red Herring","Ad Hominem","Tu Quoque","False Dilemma","Bandwagon","Slippery Slope","Circular"] },
+      { id:"hRhetoric", crown:"Figures of Speech", members:["Irony","Hyperbole","Litotes","Anaphora","Chiasmus","Metonymy","Synecdoche","Zeugma","Oxymoron","Apostrophe"] },
+      { id:"hPoetry", crown:"Poem Forms", members:["Sonnet","Villanelle","Limerick","Ode","Sestina","Elegy","Ballad","Rondeau","Pantoum","Epic"] },
+      { id:"hType", crown:"Typography", members:["Serif","Kerning","Leading","Ligature","Ascender","Em Dash","Pica","Glyph","Ampersand","Baseline"] },
+      { id:"hBard", crown:"Shakespeare", members:["Hamlet","Othello","Lear","Macbeth","Prospero","Shylock","Falstaff","Puck","Ophelia","Iago"] },
+
+      // ---------- science ----------
+      { id:"hElemPlace", crown:"Elements Named for Places", members:["Francium","Germanium","Polonium","Americium","Europium","Californium","Gallium","Scandium","Ytterbium","Berkelium"] },
+      { id:"hElemSci", crown:"Elements Named for Scientists", members:["Einsteinium","Curium","Fermium","Nobelium","Mendelevium","Bohrium","Copernicium","Meitnerium","Lawrencium","Seaborgium"], excl:["hEponym"] },
+      { id:"hBones", crown:"Bones", members:["Femur","Tibia","Fibula","Ulna","Patella","Scapula","Clavicle","Sternum","Stapes","Hyoid"] },
+      { id:"hClouds", crown:"Clouds", members:["Cirrus","Cumulus","Stratus","Nimbus","Altocumulus","Cumulonimbus","Mammatus","Lenticular","Cirrostratus"] },
+      { id:"hConstell", crown:"Constellations", members:["Orion","Lyra","Cygnus","Draco","Cassiopeia","Perseus","Andromeda","Pegasus","Aquila","Scorpius"], excl:["hMyth"] },
+      { id:"hParticles", crown:"Particles", members:["Quark","Gluon","Muon","Photon","Neutrino","Boson","Lepton","Pion","Hadron","Electron"] },
+      { id:"hCell", crown:"Cell Parts", members:["Ribosome","Nucleus","Vacuole","Lysosome","Golgi","Chloroplast","Cytoplasm","Mitochondria","Centriole","Membrane"] },
+      { id:"hDinos", crown:"Dinosaurs", members:["Triceratops","Stegosaurus","Diplodocus","Iguanodon","Allosaurus","Spinosaurus","Ankylosaurus","Velociraptor"] },
+      { id:"hEye", crown:"The Eye", members:["Iris","Pupil","Retina","Cornea","Lens","Sclera","Macula","Fovea"] },
+      { id:"hVolcano", crown:"Volcanoes", members:["Vesuvius","Etna","Krakatoa","Pinatubo","Stromboli","Fuji","Tambora","Kilauea","Hekla"], excl:["hMountains","hJapan"] },
+      { id:"hMountains", crown:"Mountains", members:["Everest","K2","Denali","Matterhorn","Olympus","Sinai","Annapurna","Eiger","Aconcagua"], excl:["hVolcano"] },
+      { id:"hIslands", crown:"Islands", members:["Crete","Malta","Corsica","Borneo","Sicily","Bali","Iona","Tasmania","Zanzibar","Madagascar"] },
+
+      // ---------- arts & things ----------
+      { id:"hChess", crown:"Chess", members:["Gambit","Castling","En Passant","Zugzwang","Stalemate","Fianchetto","Skewer","Promotion","Checkmate","Sicilian"], excl:["hArabic"] },
+      { id:"hKnots", crown:"Knots", members:["Bowline","Sheepshank","Reef","Granny","Clove Hitch","Slipknot","Sheet Bend","Half Hitch","Noose"], excl:["hNorse"] },
+      { id:"hYoung", crown:"Baby Animals", members:["Cygnet","Leveret","Joey","Kit","Cub","Fawn","Eyas","Elver","Poult","Kid"] },
+      { id:"hGroup", crown:"A Group Of", members:["Murder","Parliament","Pride","Gaggle","Pod","Murmuration","Exaltation","Unkindness","Conspiracy","Shrewdness"] },
+      { id:"hFabric", crown:"Fabrics", members:["Muslin","Damask","Gingham","Calico","Denim","Chintz","Tweed","Velvet","Seersucker","Taffeta"], excl:["hIndia"] },
+      { id:"hPasta", crown:"Pasta", members:["Orzo","Penne","Fusilli","Farfalle","Rigatoni","Orecchiette","Linguine","Gemelli","Radiatore","Ditalini"] },
+      { id:"hCheese", crown:"Cheeses", members:["Gouda","Brie","Feta","Gruyère","Manchego","Halloumi","Roquefort","Stilton","Emmental","Cheddar"] },
+      { id:"hDance", crown:"Dances", members:["Tango","Waltz","Polka","Bolero","Mazurka","Flamenco","Samba","Minuet","Gavotte","Tarantella"] },
+      { id:"hArch", crown:"Architecture", members:["Buttress","Gargoyle","Corbel","Lintel","Cupola","Apse","Nave","Spandrel","Pediment","Portico"] },
+      { id:"hShips", crown:"Famous Ships", members:["Titanic","Endurance","Beagle","Bounty","Mayflower","Victory","Argo","Lusitania","Endeavour","Santa Maria"] },
+      { id:"hNautical", crown:"On a Ship", members:["Bow","Stern","Keel","Rudder","Mast","Bilge","Hull","Galley","Bulwark","Transom"], excl:["hNorse","hDutch"] },
+      { id:"hSpice", crown:"Spices", members:["Saffron","Cardamom","Sumac","Turmeric","Fenugreek","Nutmeg","Cumin","Clove","Star Anise","Galangal"], excl:["hArabic","hIndia"] },
+      { id:"hGems", crown:"Gemstones", members:["Garnet","Peridot","Opal","Jade","Onyx","Lapis","Tourmaline","Amethyst","Beryl","Jasper"], excl:["hMohs","hCode"] },
+      { id:"hReds", crown:"Shades of Red", members:["Crimson","Scarlet","Vermilion","Carmine","Cerise","Maroon","Cinnabar","Burgundy","Oxblood","Ruby"], excl:["hGems","hCode"] },
+      { id:"hBlues", crown:"Shades of Blue", members:["Azure","Cerulean","Cobalt","Navy","Ultramarine","Sapphire","Indigo","Cyan","Periwinkle","Prussian"], excl:["hGems","hHeraldry"] },
+      { id:"hHeraldry", crown:"Heraldry", members:["Gules","Argent","Sable","Vert","Chevron","Rampant","Escutcheon","Fess","Saltire","Pale"] },
+      { id:"hOpera", crown:"Operas", members:["Carmen","Aida","Tosca","Turandot","Rigoletto","Fidelio","Norma","Nabucco","Lohengrin","Otello"], excl:["hBard"] },
+      { id:"hPainters", crown:"Painters", members:["Vermeer","Rembrandt","Monet","Goya","Klimt","Caravaggio","Titian","Turner","Hopper","Bosch"] },
+      { id:"hComposers", crown:"Composers", members:["Bach","Handel","Haydn","Mahler","Liszt","Chopin","Dvořák","Ravel","Elgar","Sibelius"] },
+      { id:"hCode", crown:"Programming Languages", members:["Python","Ruby","Java","Rust","Swift","Perl","Haskell","Lisp","Fortran","Cobol"], excl:["hEponym","hIslands"] },
+      { id:"hHorses", crown:"Famous Horses", members:["Bucephalus","Seabiscuit","Secretariat","Trigger","Black Beauty","Shadowfax","Sleipnir","Incitatus","Marengo","Copenhagen"], excl:["hNorseGods","hHorse"] }
+    ];
+    // pairs that must never share a deal (beyond each family's excl list)
+    const HARD_EXCL = [
+      ["hKeys","hEponym"],["hNorse","hNorseGods"],["hScripts","hNorse"],["hScripts","hJapan"],["hScripts","hEponym"],
+      ["hScripts","hIndia"],["hReds","hArabic"],["hBlues","hArabic"],["hBlues","hIndia"],["hFabric","hArabic"],
+      ["hCheese","hDutch"],["hShips","hConstell"],["hArms","hSpice"],["hRivers","hIndia"],["hCell","hParticles"],
+      ["hDance","hNato"],["hMyth","hHorses"],["hGolden","hMohs"],["hSpice","hNahuatl"]
+    ];
+    // other words that complete each compound, so no card elsewhere can secretly fit it
+    const HARD_COMPOUND_EXTRA = {
+      paper:["news","white","graph","term","rolling","brown","waste","note","wrapping","carbon","filter","butcher","craft","kraft","rice","parchment","toilet","sand","fly","wall","wax","crepe","tracing","litmus","blotting","tissue","wall"],
+      moon:["light","shine","stone","walk","beam","struck","lit","rise","shot","pie","cake","flower","fish","dust","roof","boot","scape","calf","stone","set"],
+      horse:["sea","saw","war","dark","iron","race","work","clothes","hobby","rocking","trojan","pack","cart","dray","gift","stalking","high","dead","charley","pommel","wild","rocking","dark","cart","shire","draft","sea"],
+      golden:["ratio","gate","retriever","fleece","rule","calf","globe","hour","parachute","mean","age","eagle","boy","girl","oldie","child","handshake","goose","ticket","years","arches","delicious","rod","egg","fleece","mile","state","ager","jubilee","touch"],
+      cast:["spell","vote","net","shadow","doubt","glance","ballot","line","pall","stone","die","lot","light","eye","iron","aspersions","anchor","pearls","fly","lure","vote","bread","glance","blame","shade"],
+      break:["record","silence","ice","promise","bread","fast","even","ground","camp","ranks","bank","code","news","dance","wind","heart","leg","ties","glass","down","point","away","out","through","water","free","neck","spell","fall","bones","rules","law","dawn","day","ice","cover","stride","character"]
+    };
+    const HARD_ANIMALS = ["cat","dog","rat","pig","cow","hen","ram","emu","ape","bat","owl","eel","ant","bee","elk","yak","gnu","ox","crow","swan","hog","sheep","goat","mole","moth","wasp","toad","frog","deer","boar","hare","lion","bear","wolf","fox","seal","crab","clam","lark","wren","tern","kite","asp","boa","teal","sable","mink","puma","newt","colt","foal","mare","stag","ewe","calf","fly","gnat","python","swift","shark","beagle","cub","fawn","kid","kit","joey","urchin","coyote","ocelot","axolotl","pike","horse","mule","ass","lynx","tiger","camel","llama","hawk","dove","orca","whale","skunk","otter","mouse","bull","lamb","duck","goose","raven","robin","finch","heron","eagle","snake","worm","slug","snail","squid","tuna","carp","cod","hound","pony","cygnet","leveret","eyas","elver","poult","retriever","griffin","kraken","sphinx","echidna","hedgehog","porcupine","lionfish","dinosaur","raptor","saurus","cygnus","scorpi","aquila","pegasus","draco","lyra","pica","ptarmigan","turkey","guinea","hydra","herring","fish","bird","bass","perch","sole","tit","auk","gull","loon","koi","lemur","weasel","stoat","ferret","badger","bison","moose","hippo","rhino","zebra","koala","panda","sloth","gecko","iguana","viper","cobra","adder","newt","louse","flea","tick","crane","stork","egret","ibis","quail","finch","rook","swallow","martin","bunting"];
+    const HARD_NUMBERS = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"];
+
+
     const FAM = {}; FAMILIES.concat(PIC_FAMILIES).forEach(f => FAM[f.id] = f);
+    HARD_FAMILIES.forEach(f => { f.hard = true; FAM[f.id] = f; });
+    const normW = w => String(w).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const hardWords = f => (f.seq ? f.chain : f.members).concat(f.seq ? [] : [f.crown]);
+    let HARD_CLASH = null;   // "a|b" -> true when two families must not share a deal
+    function hardClash(){
+      if(HARD_CLASH) return HARD_CLASH;
+      const C = {}, add = (a, b) => { if(a !== b){ C[a + "|" + b] = true; C[b + "|" + a] = true; } };
+      HARD_FAMILIES.forEach(f => (f.excl || []).forEach(x => add(f.id, x)));
+      HARD_EXCL.forEach(p => add(p[0], p[1]));
+      const tests = {
+        hidAnimal: w => HARD_ANIMALS.some(a => w.indexOf(a) >= 0),
+        hidNumber: w => HARD_NUMBERS.some(a => w.indexOf(a) >= 0),
+        palin: w => w.length >= 2 && w === w.split("").reverse().join(""),
+        silent: w => /^(kn|gn|ps|pn|pt|mn|wr|hour|hon|heir)/.test(w)
+      };
+      HARD_FAMILIES.forEach(A => {
+        let test = A.kind ? tests[A.kind] : null;
+        if(A.compound){
+          const set = new Set(A.members.map(normW).concat(HARD_COMPOUND_EXTRA[A.compound] || []));
+          test = w => set.has(w);
+        }
+        const own = new Set(A.seq ? A.chain.map(normW) : A.members.map(normW));
+        HARD_FAMILIES.forEach(B => {
+          if(B === A) return;
+          const ws = (B.seq ? B.chain : B.members).map(normW);
+          if(ws.some(w => own.has(w))) add(A.id, B.id);              // same word in both
+          if(test && ws.some(test)) add(A.id, B.id);
+        });
+      });
+      return HARD_CLASH = C;
+    }
+    // the Super Hard track's deals: which families and which words each level
+    // gets. Fixed for everyone and spread so words don't come back until the
+    // pool has been worked through.
+    let HARD_PLAN = null;
+    function hardPlan(){
+      if(HARD_PLAN) return HARD_PLAN;
+      const C = hardClash(), R = mulberry32(20261009);
+      const shuf = a => { a = a.slice(); for(let i=a.length-1; i>0; i--){ const j = Math.floor(R()*(i+1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+      let seqQ = shuf(HARD_FAMILIES.filter(f => f.seq).map(f => f.id));
+      let othQ = shuf(HARD_FAMILIES.filter(f => !f.seq).map(f => f.id));
+      const off = {};
+      HARD_PLAN = {};
+      for(let n = CLASSIC_LEVELS + 1; n <= TOTAL_LEVELS; n++){
+        const cfg = levelCfg(n), chosen = [];
+        const take = (q, count) => {
+          for(let i = 0; i < q.length && count > 0; ){
+            const id = q[i];
+            if(chosen.every(c => !C[c + "|" + id])){ chosen.push(id); q.splice(i, 1); q.push(id); count--; }
+            else i++;
+          }
+        };
+        take(seqQ, cfg.seqCount);
+        take(othQ, cfg.famCount - chosen.length);
+        HARD_PLAN[n] = chosen.map(id => {
+          const f = FAM[id], o = off[id] || 0;
+          if(f.seq){
+            const m = Math.min(cfg.membersPer, f.chain.length - 1);
+            const starts = f.chain.length - m;
+            const s0 = o % starts;
+            off[id] = o + 3;
+            const win = f.chain.slice(s0, s0 + m + 1);
+            return { id, crown: win[0], members: win.slice(1) };
+          }
+          const m = Math.min(cfg.membersPer, f.members.length);
+          const words = [];
+          for(let i = 0; i < m; i++) words.push(f.members[(o + i) % f.members.length]);
+          off[id] = o + m;
+          return { id, crown: f.crown, members: words };
+        });
+      }
+      return HARD_PLAN;
+    }
     const Q = (e, dst) => (e && e.pic) ? (dst ? "the matching card" : "that picture") : "“" + ((e && e.word) || "card") + "”";
     const Qc = e => { const q = Q(e); return q.charAt(0).toUpperCase() + q.slice(1); };
     const LOCK_COLORS = [
@@ -646,15 +873,31 @@
     const lockColor = id => LOCK_COLORS.find(c => c.id === id) || LOCK_COLORS[0];
 
     /* ================= level configuration ================= */
-    const TOTAL_LEVELS = 30;
-    function diffOf(n){ return n <= 6 ? "Easy" : n <= 14 ? "Normal" : n <= 22 ? "Hard" : "Expert"; }
+    const CLASSIC_LEVELS = 30, TOTAL_LEVELS = 60;
+    function diffOf(n){ return n > CLASSIC_LEVELS ? "Super Hard" : n <= 6 ? "Easy" : n <= 14 ? "Normal" : n <= 22 ? "Hard" : "Expert"; }
+    const diffCls = d => "diff-" + d.replace(/\s+/g, "");
+    const dispN = n => n > CLASSIC_LEVELS ? n - CLASSIC_LEVELS : n;
+    const trackOf = n => n > CLASSIC_LEVELS ? "hard" : "classic";
+    const trackRange = t => t === "hard" ? [CLASSIC_LEVELS + 1, TOTAL_LEVELS] : [1, CLASSIC_LEVELS];
     const REGIONS = [
       { name:"Sunny Meadows", from:1,  to:6 },
       { name:"Riverbend",     from:7,  to:14 },
       { name:"Highwood",      from:15, to:22 },
-      { name:"Crown Peaks",   from:23, to:30 }
+      { name:"Crown Peaks",   from:23, to:30 },
+      { name:"The Labyrinth",         from:31, to:40, track:"hard" },
+      { name:"Tower of Babel",        from:41, to:50, track:"hard" },
+      { name:"Library of Alexandria", from:51, to:60, track:"hard" }
     ];
     function levelCfg(n){
+      if(n > CLASSIC_LEVELS){
+        const k = n - CLASSIC_LEVELS;
+        return { n, hard:true, famCount:5,
+                 membersPer: k <= 10 ? 5 : k <= 20 ? 6 : 7,
+                 seqCount:   k <= 2 ? 0 : k <= 22 ? 1 : 2,
+                 locks:      k <= 4 ? 1 : k <= 14 ? 2 : 3,
+                 halves:     k <= 7 ? 1 : 2,
+                 pics: 0, diff: diffOf(n) };
+      }
       const famCount   = n < 3 ? 2 : n < 7 ? 3 : n < 15 ? 4 : 5;
       const membersPer = n < 5 ? 3 : 4;
       const seqCount   = n < 4 ? 0 : n < 16 ? 1 : 2;
@@ -915,6 +1158,20 @@
     /* ================= deal building ================= */
     function buildCards(cfg, rng){
       REG = {}; FAMTOTAL = {};
+      if(cfg.hard){
+        const cards = [];
+        let uid = 0;
+        const nid = () => "c" + (uid++);
+        const plan = hardPlan()[cfg.n];
+        plan.forEach(p => {
+          const cid = nid();
+          REG[cid] = { kind:"crown", fam:p.id, word:p.crown, rank:0 };
+          cards.push(cid);
+          p.members.forEach((w, i) => { const id = nid(); REG[id] = { kind:"member", fam:p.id, word:w, rank:i+1 }; cards.push(id); });
+          FAMTOTAL[p.id] = 1 + p.members.length;
+        });
+        return { cards, fams: plan.map(p => FAM[p.id]), nid };
+      }
       let seqPool = FAMILIES.filter(f => f.seq), otherPool = FAMILIES.filter(f => !f.seq);
       const pick = arr => arr.splice(Math.floor(rng()*arr.length), 1)[0];
       const fams = [];
@@ -1053,6 +1310,7 @@
     }
     function budgetFor(st){
       const totalPlay = st.cols.reduce((a, c) => a + c.length, 0) + st.stock.length + st.waste.length;
+      if(st.level > CLASSIC_LEVELS) return Math.max(40, Math.min(230, Math.round(totalPlay * 2.7) + 14));
       return Math.max(30, Math.min(210, Math.round(totalPlay * 3.2) + 18));
     }
     function generateLevel(n){
@@ -1169,9 +1427,10 @@
       return d;
     }
     function completedLevels(){ return Object.keys(S.stars).map(Number).filter(n => S.stars[n] >= 1).sort((a, b) => a - b); }
-    function nextLevel(){
-      for(let n = 1; n <= TOTAL_LEVELS; n++) if(!S.stars[n]) return n;
-      return TOTAL_LEVELS;
+    function nextLevel(t){
+      const r = trackRange(t || trackOf(S.level));
+      for(let n = r[0]; n <= r[1]; n++) if(!S.stars[n]) return n;
+      return r[1];
     }
     function highestUnlocked(){ const c = completedLevels(); return Math.min(TOTAL_LEVELS, (c.length ? c[c.length - 1] : 0) + 1); }
     function currentSnapshot(withHistory){
@@ -1342,11 +1601,14 @@
         el.innerHTML = '<div class="pic" aria-hidden="true">' + e.pic + '</div>';
         return el;
       }
-      const wlen = (e.word || "").length;
-      const wfs = wlen >= 8 ? ' style="font-size:calc(var(--cw)*.175)"' : wlen === 7 ? ' style="font-size:calc(var(--cw)*.2)"' : "";
+      const wtoks = String(e.word || "").split(" "), wlen = Math.max.apply(null, wtoks.map(t => t.length));
+      const many = wtoks.length >= 3 || (wtoks.length === 2 && String(e.word).length >= 13);
+      const fsz = wlen >= 12 ? .125 : wlen >= 10 ? .14 : wlen >= 9 ? .16 : wlen >= 8 ? .175 : wlen === 7 ? .2 : many ? .19 : 0;
+      const wfs = fsz ? ' style="font-size:calc(var(--cw)*' + fsz + ')"' : "";
+      const wcls = (!isCrown && wtoks.length > 1) ? "word multi" : "word";
       el.innerHTML =
         (isCrown ? '<span class="crownBadge">' + svgIcon("crown") + '</span>' : "") +
-        '<div class="word"' + wfs + '>' + e.word + '</div>' +
+        '<div class="' + wcls + '"' + wfs + '>' + e.word + '</div>' +
         '<div class="footArt">' + tab + '</div>';
       return el;
     }
@@ -1442,7 +1704,7 @@
       // HUD
       $("#movesNum").textContent = st.movesLeft;
       $("#movesRibbon").classList.toggle("low", st.movesLeft <= 8 && !G.over);
-      $("#hudLvl").innerHTML = "Level " + G.cfg.n + "<small>" + G.cfg.diff + "</small>";
+      $("#hudLvl").innerHTML = "Level " + dispN(G.cfg.n) + "<small>" + G.cfg.diff + "</small>";
       renderCoins(); renderBoosters();
     }
     function renderCoins(){
@@ -1515,7 +1777,7 @@
     }
     function continueGame(){
       if(G && !G.over){ hideOverlays(); showScreen("game"); render(); return; }
-      if(!G && savedCurrent){ resumeGame(savedCurrent, "Level " + savedCurrent.level + " — picking up where you left off"); return; }
+      if(!G && savedCurrent){ resumeGame(savedCurrent, "Level " + dispN(savedCurrent.level) + " — picking up where you left off"); return; }
       startLevel(nextLevel());
     }
     function startLevel(n){
@@ -1529,13 +1791,14 @@
     }
     function fillIntro(){
       const cfg = G.cfg, st = G.st;
-      $("#introTitle").textContent = "Level " + cfg.n;
+      $("#introTitle").textContent = "Level " + dispN(cfg.n);
       const d = $("#introDiff");
-      d.textContent = cfg.diff; d.className = "diffTag diff-" + cfg.diff;
+      d.textContent = cfg.diff; d.className = "diffTag " + diffCls(cfg.diff);
       $("#introMoves").textContent = st.budget + " moves to clear the board";
       const fams = Object.keys(FAMTOTAL).map(fid => FAM[fid]);
       const feats = [];
       const seqN = fams.filter(f => f.seq).length;
+      if(cfg.hard) feats.push('<div style="color:#5b2a86">' + svgIcon("bulb") + '<span><b>Super Hard.</b> Abstract links: hidden words, word origins, compounds, deep cuts. Decoys look like they fit elsewhere, but every card belongs to exactly one category.</span></div>');
       feats.push('<div style="color:#2f6fb2">' + svgIcon("crown") + '<span><b>' + fams.length + ' hidden categories.</b> Work out which cards belong together.</span></div>');
       if(seqN) feats.push('<div style="color:#a4762a">' + svgIcon("steps") + '<span><b>' + seqN + ' sequence ' + (seqN > 1 ? "categories" : "category") + '.</b> Step-icon cards bank in one exact order, starting with the crown. Work out what comes next.</span></div>');
       if(cfg.locks) feats.push('<div style="color:#64788f">' + svgIcon("lock") + '<span><b>' + cfg.locks + ' locked card' + (cfg.locks>1?"s":"") + '.</b> Find the matching color key to open ' + (cfg.locks>1?"them":"it") + '.</span></div>');
@@ -1601,7 +1864,7 @@
       buzz([25,40,25,40,70]); sfx.win();
       $("#winStars").innerHTML = [1,2,3].map(i => svgIcon("star", 1.4).replace("<svg", '<svg class="' + (i <= stars ? "on" : "off") + '"')).join("");
       $("#winReward").innerHTML = 'You earned <span class="coinPill">' + svgIcon("coin", 1.6) + reward + "</span>";
-      $("#nextBtn").textContent = G.cfg.n >= TOTAL_LEVELS ? "Finish" : "Next Level";
+      $("#nextBtn").textContent = (G.cfg.n === CLASSIC_LEVELS || G.cfg.n >= TOTAL_LEVELS) ? "Finish" : "Next Level";
       renderCoins();
       setTimeout(() => { $("#winOverlay").hidden = false; }, 550);
     }
@@ -1684,12 +1947,16 @@
     }
 
     /* ================= map ================= */
+    let MAPTRACK = null;
     function renderMap(){
       renderCoins();
       const grid = $("#levelGrid");
       let html = "";
-      REGIONS.forEach(r => {
-        html += '<div class="region"><div class="regionHead"><h2>' + r.name + '</h2><span class="diff-' + diffOf(r.from) + '">' + diffOf(r.from) + '</span></div><div class="lvlGrid">';
+      const MT = MAPTRACK || trackOf(S.level);
+      MAPTRACK = MT;
+      document.querySelectorAll("#trackTabs button").forEach(b => b.classList.toggle("on", b.dataset.track === MT));
+      REGIONS.filter(r => (r.track || "classic") === MT).forEach(r => {
+        html += '<div class="region"><div class="regionHead"><h2>' + r.name + '</h2><span class="' + diffCls(diffOf(r.from)) + '">' + diffOf(r.from) + '</span></div><div class="lvlGrid">';
         for(let n=r.from; n<=r.to; n++){
           const cfg = levelCfg(n);
           const stars = S.stars[n] || 0;
@@ -1697,25 +1964,27 @@
           if(cfg.seqCount) feat += '<i style="background:#dd7f2e">' + svgIcon("steps", 2.6) + '</i>';
           if(cfg.locks) feat += '<i style="background:#64788f">' + svgIcon("lock", 2.6) + '</i>';
           if(cfg.halves) feat += '<i style="background:#2e8b8b">' + svgIcon("half", 2.6) + '</i>';
-          const isDone = stars > 0, isNext = !isDone && n === nextLevel(), isIp = n === inProgressLevel();
+          const isDone = stars > 0, isNext = !isDone && n === nextLevel(MT), isIp = n === inProgressLevel();
           html += '<button class="lvlBtn' + (isDone ? " done" : "") + (isNext ? " nextLvl" : "") + '" data-level="' + n + '"' +
                   ' aria-label="Level ' + n + (isDone ? ", completed, " + stars + " star" + (stars > 1 ? "s" : "") : isNext ? ", next up" : "") + (isIp ? ", in progress" : "") + '">' +
                   (isDone ? '<span class="doneMark">' + svgIcon("check", 3) + '</span>' : "") +
                   (isIp ? '<span class="inprog">PLAYING</span>' : "") +
-                  '<span class="feat">' + feat + '</span><b>' + n + '</b>' +
+                  '<span class="feat">' + feat + '</span><b>' + dispN(n) + '</b>' +
                   '<span class="stars">' + "★★★".slice(0, stars) + "☆☆☆".slice(0, 3-stars) + '</span></button>';
         }
         html += "</div></div>";
       });
       grid.innerHTML = html;
-      const done = completedLevels().length, starSum = Object.values(S.stars).reduce((a, v) => a + v, 0);
-      const ip = inProgressLevel(), nx = nextLevel();
-      const contLabel = ip ? "Continue " + ip : done >= TOTAL_LEVELS ? "Play " + nx : (done ? "Play " + nx : "Start");
+      const TR = trackRange(MT), TN = TR[1] - TR[0] + 1;
+      const inT = n => n >= TR[0] && n <= TR[1];
+      const done = completedLevels().filter(inT).length, starSum = Object.keys(S.stars).filter(k => inT(+k)).reduce((a, k) => a + S.stars[k], 0);
+      const ipAny = inProgressLevel(), ip = inT(ipAny) ? ipAny : 0, nx = nextLevel(MT);
+      const contLabel = ip ? "Continue " + dispN(ip) : (done || MT === "hard") ? "Play " + dispN(nx) : "Start";
       $("#mapProg").innerHTML =
-        '<div class="progTxt"><b>' + done + '/' + TOTAL_LEVELS + ' completed</b><span>★ ' + starSum + '/' + (TOTAL_LEVELS * 3) + ' stars</span>' +
-        '<div class="progBar"><i style="width:' + Math.round(done / TOTAL_LEVELS * 100) + '%"></i></div></div>' +
+        '<div class="progTxt"><b>' + done + '/' + TN + ' completed</b><span>★ ' + starSum + '/' + (TN * 3) + ' stars</span>' +
+        '<div class="progBar"><i style="width:' + Math.round(done / TN * 100) + '%"></i></div></div>' +
         '<button class="bigBtn" id="continueBtn">' + contLabel + '</button>';
-      $("#continueBtn").addEventListener("click", () => { ac(); continueGame(); });
+      $("#continueBtn").addEventListener("click", () => { ac(); if(ip) continueGame(); else startLevel(nx); });
       grid.querySelectorAll(".lvlBtn").forEach(b => b.addEventListener("click", () => { ac(); startLevel(+b.dataset.level); }));
     }
 
@@ -1964,7 +2233,8 @@
     $("#pauseHowBtn").addEventListener("click", () => { $("#howOverlay").hidden = false; });
     $("#pauseSoundBtn").addEventListener("click", () => { S.sound = !S.sound; updateSoundBtn(); saveNow(); });
     $("#quitBtn").addEventListener("click", () => { hideOverlays(); showScreen("map"); });
-    $("#nextBtn").addEventListener("click", () => { hideOverlays(); if(S.level >= TOTAL_LEVELS) showScreen("map"); else startLevel(S.level + 1); });
+    $("#nextBtn").addEventListener("click", () => { hideOverlays(); if(S.level >= TOTAL_LEVELS || S.level === CLASSIC_LEVELS) showScreen("map"); else startLevel(S.level + 1); });
+    document.querySelectorAll("#trackTabs button").forEach(b => b.addEventListener("click", () => { MAPTRACK = b.dataset.track; renderMap(); }));
     $("#replayBtn").addEventListener("click", () => { hideOverlays(); loadLevel(S.level); if(G) G.started = true; });
     $("#winMapBtn").addEventListener("click", () => { hideOverlays(); showScreen("map"); });
     $("#retryBtn").addEventListener("click", () => { hideOverlays(); loadLevel(S.level); if(G) G.started = true; });
@@ -2046,7 +2316,7 @@
     buildHow();
     updateSoundBtn();
     renderCoins();
-    if(savedCurrent) resumeGame(savedCurrent, "Level " + savedCurrent.level + " — picking up where you left off");
+    if(savedCurrent) resumeGame(savedCurrent, "Level " + dispN(savedCurrent.level) + " — picking up where you left off");
     else { showScreen("map"); const nb = document.querySelector(".lvlBtn.nextLvl"); if(nb) nb.scrollIntoView({ block:"center" }); }
     saveNow();
     requestPersist();
@@ -2059,7 +2329,7 @@
   var btn = document.getElementById('installBtn');
   var deferred = null;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=20261008-play4b', { scope: './' }).catch(function(){});
+    navigator.serviceWorker.register('sw.js?v=20261009-hard1', { scope: './' }).catch(function(){});
   }
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
