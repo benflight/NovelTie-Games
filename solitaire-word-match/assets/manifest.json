@@ -22,11 +22,11 @@
       "type": "image/png"
     }
   ],
-  "id": "../index.html",
+  "id": "/solitaire-word-match/",
   "name": "Solitaire Word Match",
   "orientation": "portrait",
-  "scope": "../",
+  "scope": "/solitaire-word-match/",
   "short_name": "Word Match",
-  "start_url": "../index.html",
+  "start_url": "/solitaire-word-match/",
   "theme_color": "#0e8f3c"
 }
