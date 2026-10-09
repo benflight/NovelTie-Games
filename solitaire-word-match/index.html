@@ -13,6 +13,7 @@
     <link rel="manifest" href="assets/manifest.json" />
     <link rel="apple-touch-icon" href="assets/icon-180.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+    <meta name="swm-build" content="20261008-play1" />
     <title>Solitaire Word Match</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -303,6 +304,10 @@
         font-size:calc(var(--cw)*.16); font-weight:700; padding:1px 8px; border-radius:999px;
       }
       .card.plate .need i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+      #dragLayer{ position:fixed; left:0; top:0; width:0; height:0; z-index:400; pointer-events:none; will-change:transform; }
+      #dragLayer .card{ position:absolute; pointer-events:none; animation:none !important; }
+      .card.dragSrc{ visibility:hidden; }
+      .iconBtn[hidden]{ display:none; }
       .card.dragging{
         opacity:1 !important;
         box-shadow:0 14px 26px rgba(0,0,0,.42), 0 4px 8px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px var(--card-line) !important;
@@ -409,6 +414,9 @@
         <div class="mapTop">
           <div class="coinPill" id="mapCoins"></div>
           <div class="mapBtns">
+            <button class="iconBtn" id="installBtn" aria-label="Install app" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
+            </button>
             <button class="iconBtn" id="soundBtn" aria-label="Toggle sound"></button>
             <button class="iconBtn" id="howBtn" aria-label="How to play">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9.2 9a2.9 2.9 0 1 1 4.4 2.4c-.9.5-1.6 1-1.6 2.1"/><circle cx="12" cy="17.6" r=".4" fill="currentColor"/></svg>
@@ -721,7 +729,9 @@
         return { ok:true, move:{ kind:"stack", src:drag, col:ci } };
       }
       if(target.zone === "waste"){
-        if(!st.waste.length) return { ok:false };
+        // the waste card can't be dropped back onto itself (a half card would
+        // "merge" with itself and vanish from the game)
+        if(drag.zone === "waste" || !st.waste.length) return { ok:false };
         const tid = st.waste[st.waste.length-1], t = eff(st, tid);
         if(cards.length === 1 && b.kind === "half" && t.kind === "half" && b.pair === t.pair)
           return { ok:true, move:{ kind:"merge", src:drag, targetHalf:tid } };
@@ -1485,13 +1495,10 @@
     function clearDropMarks(){
       document.querySelectorAll(".dropOk,.dropBad").forEach(e => e.classList.remove("dropOk","dropBad"));
     }
-    function cleanupDrag(d){
-      const els = (d && d.els) || document.querySelectorAll(".card.dragging");
-      els.forEach(el => {
-        el.style.transform = "";
-        el.style.zIndex = "";
-        el.classList.remove("dragging");
-      });
+    function cleanupDrag(){
+      const layer = document.getElementById("dragLayer");
+      if(layer) layer.remove();
+      document.querySelectorAll(".dragSrc").forEach(el => el.classList.remove("dragSrc"));
       clearDropMarks();
     }
     function beginDrag(e){
@@ -1513,16 +1520,31 @@
             drag.ids = ids.concat(pile.slice().reverse());
         }
       }
+      // the cards in hand are drawn as copies in a fixed layer on <body>, so
+      // they aren't clipped by the scrolling board and never sit between the
+      // finger and the drop target (the layer ignores pointer hit-testing);
+      // the originals stay in place, hidden, until the move resolves
       const els = [];
       drag.ids.forEach(id => {
-        document.querySelectorAll('.card[data-cid="' + id + '"]').forEach(el => els.push(el));
+        const el = document.querySelector('#board .card[data-cid="' + id + '"], #waste .card[data-cid="' + id + '"]');
+        if(el) els.push(el);
       });
       if(!els.length){ drag = null; return; }
-      drag.els = els;
+      cleanupDrag();
+      const layer = document.createElement("div");
+      layer.id = "dragLayer";
       els.forEach((el, i) => {
-        el.classList.add("dragging");
-        el.style.zIndex = 200 + i;
+        const r = el.getBoundingClientRect();
+        const c = el.cloneNode(true);
+        c.classList.remove("selected", "hintSrc", "hintDst", "flipIn", "popIn", "dropOk", "dropBad", "topCard");
+        c.classList.add("dragging");
+        c.removeAttribute("data-zone");
+        c.style.cssText = "left:" + r.left + "px;top:" + r.top + "px;width:" + r.width + "px;height:" + r.height + "px;z-index:" + (i + 1) + ";transform:none";
+        layer.appendChild(c);
       });
+      document.body.appendChild(layer);
+      els.forEach(el => el.classList.add("dragSrc"));
+      drag.layer = layer;
       drag.active = true;
       buzz(5);
     }
@@ -1566,10 +1588,7 @@
         if(!drag) return;
       }
       const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
-      if(drag.els){
-        const t = "translate(" + dx + "px," + dy + "px)";
-        for(const el of drag.els) el.style.transform = t;
-      }
+      if(drag.layer) drag.layer.style.transform = "translate3d(" + dx + "px," + dy + "px,0)";
       const under = document.elementFromPoint(e.clientX, e.clientY);
       const target = resolveTarget(under);
       clearDropMarks();
@@ -1602,7 +1621,7 @@
       }
       const d = drag; drag = null;
       if(d.active){
-        cleanupDrag(d);
+        cleanupDrag();
         if(d.cur && d.cur.r.ok) doMove(d.cur.r.move);
         else {
           if(d.cur && d.cur.r.reason) toast(d.cur.r.reason);
@@ -1637,6 +1656,16 @@
         if(target){ attempt(G.sel, target); }
         G.sel = null; render();
       }
+    });
+
+    // the OS can steal a touch mid-drag (notification shade, app switch,
+    // system gesture): drop whatever is in hand back where it came from
+    window.addEventListener("pointercancel", () => {
+      stockTap = false;
+      if(drag){ const wasActive = drag.active; drag = null; if(wasActive) cleanupDrag(); }
+    });
+    window.addEventListener("blur", () => {
+      if(drag && drag.active){ drag = null; cleanupDrag(); }
     });
 
     /* ================= pull-to-refresh lock ================= */
@@ -1719,6 +1748,27 @@
     showScreen("map");
     // debug/test hook (used by automated verification; harmless in play)
     window.__wp = { generateLevel, solve, levelCfg, FAMILIES, applyMove, enumMoves, canDrop, isWin, getState: () => G, session: S };
+</script>
+<script>
+/* In-page install button + service worker registration (installability). */
+(function(){
+  var btn = document.getElementById('installBtn');
+  var deferred = null;
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js?v=20261008-play1', { scope: './' }).catch(function(){});
+  }
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferred = e;
+    btn.hidden = false;
+  });
+  btn.addEventListener('click', function(){
+    if(!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function(){ deferred = null; btn.hidden = true; });
+  });
+  window.addEventListener('appinstalled', function(){ deferred = null; btn.hidden = true; });
+})();
 </script>
 </body>
 </html>
