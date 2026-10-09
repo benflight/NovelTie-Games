@@ -13,7 +13,7 @@
     <link rel="manifest" href="assets/manifest.json" />
     <link rel="apple-touch-icon" href="assets/icon-180.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <meta name="swm-build" content="20261008-play2" />
+    <meta name="swm-build" content="20261008-play3" />
     <title>Solitaire Word Match</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -112,6 +112,22 @@
       .lvlBtn .feat{ position:absolute; top:-6px; right:-4px; display:flex; gap:2px; }
       .lvlBtn .feat i{ width:16px; height:16px; border-radius:50%; display:grid; place-items:center; color:#fff; box-shadow:0 1px 3px rgba(0,0,0,.4); }
       .lvlBtn .feat svg{ width:10px; height:10px; }
+      .mapProg{ display:flex; align-items:center; gap:10px; margin:10px 2px 0; }
+      .mapProg .progTxt{ flex:1; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.35); }
+      .mapProg .progTxt b{ display:block; font-size:20px; font-weight:600; line-height:1.1; }
+      .mapProg .progTxt span{ font-size:13px; opacity:.85; }
+      .mapProg .progBar{ height:7px; border-radius:999px; background:rgba(0,0,0,.3); margin-top:5px; overflow:hidden; }
+      .mapProg .progBar i{ display:block; height:100%; background:linear-gradient(90deg,#ffe98a,var(--gold)); border-radius:999px; }
+      .mapProg .bigBtn{ padding:11px 16px; font-size:16px; white-space:nowrap; }
+      .lvlBtn.done{ background:linear-gradient(#fff6d3,#f2dc97); box-shadow:0 3px 0 #c99327, 0 4px 8px rgba(0,0,0,.25); }
+      .lvlBtn .doneMark{ position:absolute; top:-6px; left:-4px; width:18px; height:18px; border-radius:50%; background:var(--good); color:#fff; display:grid; place-items:center; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+      .lvlBtn .doneMark svg{ width:12px; height:12px; }
+      .lvlBtn.nextLvl{ box-shadow:0 0 0 3px #7dffb0, 0 3px 0 #c9b98f, 0 4px 12px rgba(125,255,176,.6); }
+      .lvlBtn .inprog{ position:absolute; bottom:-7px; left:50%; transform:translateX(-50%); background:#2f6fb2; color:#fff; font-size:8.5px; font-weight:700; letter-spacing:.04em; padding:1px 6px; border-radius:999px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.35); }
+      .saveBox{ width:100%; box-sizing:border-box; min-height:74px; font:12px/1.35 ui-monospace,Menlo,monospace; border:1.5px solid var(--card-line); border-radius:11px; padding:8px; background:#fff; color:var(--ink); resize:vertical; word-break:break-all; }
+      .saveStat{ background:#fff; border:1.5px solid var(--card-line); border-radius:11px; padding:8px 11px; font-size:14px; line-height:1.5; margin:8px 0 4px; }
+      .saveNote{ font-size:12.5px; color:var(--ink-soft); margin:6px 2px 0; line-height:1.4; }
+      .sheet h3{ font-size:16px; margin:14px 0 6px; font-weight:600; }
       .mapNote{ color:rgba(255,255,255,.75); font-size:13px; text-align:center; margin:22px 8px 0; }
 
       /* ---------- game screen ---------- */
@@ -418,14 +434,18 @@
             <button class="iconBtn" id="installBtn" aria-label="Install app" hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></svg>
             </button>
+            <button class="iconBtn" id="progBtn" aria-label="Progress and backup">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.6l-5.2 2.7 1-5.8L3.5 9.4l5.9-.8z"/></svg>
+            </button>
             <button class="iconBtn" id="soundBtn" aria-label="Toggle sound"></button>
             <button class="iconBtn" id="howBtn" aria-label="How to play">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9.2 9a2.9 2.9 0 1 1 4.4 2.4c-.9.5-1.6 1-1.6 2.1"/><circle cx="12" cy="17.6" r=".4" fill="currentColor"/></svg>
             </button>
           </div>
         </div>
+        <div class="mapProg" id="mapProg"></div>
         <div id="levelGrid"></div>
-        <p class="mapNote">Drag matching word cards together, crown cards open the top slots, and every card home wins the level. No ads, no timers — just the puzzle.</p>
+        <p class="mapNote">Drag matching word cards together, crown cards open the top slots, and every card home wins the level. No ads, no timers — just the puzzle. Your progress saves on this device as you play.</p>
       </section>
 
       <!-- ======= GAME ======= -->
@@ -506,9 +526,27 @@
             <button class="bigBtn" id="resumeBtn">Keep Playing</button>
             <button class="bigBtn alt" id="restartBtn">Restart Level</button>
             <button class="bigBtn alt" id="pauseHowBtn">How to Play</button>
+            <button class="bigBtn alt" id="pauseProgBtn">Progress &amp; Backup</button>
             <button class="bigBtn alt" id="pauseSoundBtn">Sound: On</button>
             <button class="bigBtn alt" id="quitBtn">Level Map</button>
           </div>
+        </div>
+      </div>
+
+      <!-- ======= PROGRESS / BACKUP ======= -->
+      <div class="overlay" id="progOverlay" hidden>
+        <div class="sheet">
+          <button class="closeX" data-close="progOverlay" aria-label="Close">✕</button>
+          <h2>Your Progress</h2>
+          <div class="saveStat" id="progStats"></div>
+          <h3>Back up</h3>
+          <p class="saveNote">Progress is saved on this device automatically. Copy this code somewhere safe (notes, email to yourself) as a backup.</p>
+          <div class="rowBtns" style="margin-top:8px"><button class="bigBtn" id="exportBtn">Copy backup code</button></div>
+          <textarea class="saveBox" id="exportBox" readonly hidden aria-label="Backup code"></textarea>
+          <h3>Restore</h3>
+          <p class="saveNote">Paste a backup code to replace the progress on this device. Your current progress is kept as a spare copy on this device first.</p>
+          <textarea class="saveBox" id="importBox" placeholder="Paste a backup code here" aria-label="Paste backup code"></textarea>
+          <div class="rowBtns" style="margin-top:8px"><button class="bigBtn alt" id="importBtn">Restore from code</button></div>
         </div>
       </div>
 
@@ -1025,14 +1063,150 @@
       return { st, cfg, solLen: -1 };
     }
 
-    /* ================= session (in-memory only) ================= */
+    /* ================= session (saved to localStorage) ================= */
     const S = {
       coins: 120,
       boost: { hint:3, undo:6, shuffle:2 },
-      stars: {},          // level -> 1..3 earned this session
+      stars: {},          // level -> best stars 1..3 (a level is completed once it has stars)
+      best: {},           // level -> { stars, movesLeft, budget, at }
       sound: true,
-      level: 1
+      level: 1,           // last level played
+      persisted: null,    // navigator.storage.persist() result
+      created: Date.now()
     };
+
+    /* ================= saved progress ================= */
+    // One versioned JSON record in localStorage. The installed app and the
+    // browser tab share it (same site). Older/partial records are upgraded by
+    // normalizeSave; unreadable records are copied aside, never deleted.
+    const SAVE_KEY = "noveltie.swm.save.v1";
+    const LEGACY_KEYS = [];   // earlier save keys, newest first (no build before v1 saved anything)
+    const BACKUP_PREFIX = "SWM1.";
+    let saveBlocked = false, savedCurrent = null, saveWarned = false, lastWritten = null;
+    function defaultSave(){
+      return { v:1, coins:120, boost:{ hint:3, undo:6, shuffle:2 }, sound:true, stars:{}, best:{}, level:1, current:null, persisted:null, created:Date.now(), updated:0 };
+    }
+    function validCurrent(c){
+      try{
+        if(!c || !(c.level >= 1 && c.level <= TOTAL_LEVELS) || !c.st || !c.reg || !c.famtotal) return false;
+        const st = c.st;
+        if(!Array.isArray(st.cols) || st.cols.length !== 5 || !Array.isArray(st.stock) || !Array.isArray(st.waste) || !Array.isArray(st.down)) return false;
+        return st.cols.flat().concat(st.stock, st.waste).every(id => c.reg[id]) && typeof st.movesLeft === "number";
+      }catch(e){ return false; }
+    }
+    function normalizeSave(o){
+      const d = defaultSave();
+      if(!o || typeof o !== "object") return d;
+      const num = (x, def) => (typeof x === "number" && isFinite(x) && x >= 0) ? Math.floor(x) : def;
+      d.coins = num(o.coins, d.coins);
+      if(o.boost && typeof o.boost === "object") ["hint","undo","shuffle"].forEach(k => { d.boost[k] = num(o.boost[k], d.boost[k]); });
+      if(typeof o.sound === "boolean") d.sound = o.sound;
+      const stars = (o.stars && typeof o.stars === "object") ? o.stars : {};
+      Object.keys(stars).forEach(k => { const n = +k, v = num(+stars[k], 0); if(n >= 1 && n <= TOTAL_LEVELS && v >= 1) d.stars[n] = Math.min(3, v); });
+      if(Array.isArray(o.completed)) o.completed.forEach(n => { n = +n; if(n >= 1 && n <= TOTAL_LEVELS && !d.stars[n]) d.stars[n] = 1; });
+      if(o.best && typeof o.best === "object") Object.keys(o.best).forEach(k => {
+        const b = o.best[k], n = +k;
+        if(b && d.stars[n]) d.best[n] = { stars: d.stars[n], movesLeft: num(b.movesLeft, 0), budget: num(b.budget, 0), at: num(b.at, 0) };
+      });
+      d.level = Math.min(TOTAL_LEVELS, Math.max(1, num(o.level, 1)));
+      if(validCurrent(o.current)) d.current = o.current;
+      if(typeof o.persisted === "boolean") d.persisted = o.persisted;
+      d.created = num(o.created, d.created); d.updated = num(o.updated, 0);
+      return d;
+    }
+    function readSave(){
+      let raw = null, from = null;
+      try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){ saveBlocked = true; return defaultSave(); }
+      if(raw === null){
+        for(const k of LEGACY_KEYS){ const r = localStorage.getItem(k); if(r !== null){ raw = r; from = k; break; } }
+      }
+      if(raw === null) return defaultSave();
+      if(!from) lastWritten = raw;
+      let obj;
+      try{ obj = JSON.parse(raw); }
+      catch(e){
+        // keep the unreadable record under a side key instead of losing it
+        try{ localStorage.setItem(SAVE_KEY + ".unreadable-" + Date.now(), raw); }catch(_){}
+        return defaultSave();
+      }
+      const d = normalizeSave(obj);
+      if(from) d.migratedFrom = from;   // the legacy key itself is left untouched
+      return d;
+    }
+    function completedLevels(){ return Object.keys(S.stars).map(Number).filter(n => S.stars[n] >= 1).sort((a, b) => a - b); }
+    function nextLevel(){
+      for(let n = 1; n <= TOTAL_LEVELS; n++) if(!S.stars[n]) return n;
+      return TOTAL_LEVELS;
+    }
+    function highestUnlocked(){ const c = completedLevels(); return Math.min(TOTAL_LEVELS, (c.length ? c[c.length - 1] : 0) + 1); }
+    function currentSnapshot(withHistory){
+      if(G){
+        if(G.over && isWin(G.st)) return null;
+        return { level: G.cfg.n, st: G.st, reg: REG, famtotal: FAMTOTAL, history: withHistory ? G.history.slice(-30) : [], started: !!G.started, savedAt: Date.now() };
+      }
+      return savedCurrent;
+    }
+    function buildSave(withHistory){
+      return { v:1, coins:S.coins, boost:S.boost, sound:S.sound, stars:S.stars, best:S.best, level:S.level,
+               highest: highestUnlocked(), completed: completedLevels(), current: currentSnapshot(withHistory),
+               persisted:S.persisted, created:S.created, updated:Date.now() };
+    }
+    // completions are never lost: anything another tab/the installed app
+    // saved (best stars per level) is merged in before writing
+    function mergeProgress(d){
+      Object.keys(d.stars).forEach(k => {
+        if((d.stars[k] || 0) > (S.stars[k] || 0)) S.stars[k] = d.stars[k];
+        const ob = d.best[k], mb = S.best[k];
+        if(ob && (!mb || ob.movesLeft > mb.movesLeft)) S.best[k] = Object.assign({}, ob, { stars: S.stars[k] });
+      });
+    }
+    function saveNow(){
+      if(saveBlocked) return;
+      let raw = null;
+      try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){}
+      if(raw !== null && raw !== lastWritten){
+        let o = null;
+        try{ o = JSON.parse(raw); }catch(e){ try{ localStorage.setItem(SAVE_KEY + ".unreadable-" + Date.now(), raw); }catch(_){} }
+        if(o) mergeProgress(normalizeSave(o));
+      }
+      const data = buildSave(true);
+      let json = JSON.stringify(data);
+      try{ localStorage.setItem(SAVE_KEY, json); lastWritten = json; return; }catch(e){}
+      try{ if(data.current) data.current.history = []; json = JSON.stringify(data); localStorage.setItem(SAVE_KEY, json); lastWritten = json; }
+      catch(e2){ if(!saveWarned){ saveWarned = true; toast("Couldn't save progress on this device"); } }
+    }
+    function applySave(d){
+      S.coins = d.coins; S.boost = d.boost; S.sound = d.sound; S.stars = d.stars; S.best = d.best;
+      S.level = d.level; S.persisted = d.persisted; S.created = d.created;
+      savedCurrent = d.current;
+    }
+    function requestPersist(){
+      try{
+        if(!navigator.storage || !navigator.storage.persist) return;
+        navigator.storage.persisted().then(p => p || navigator.storage.persist()).then(r => {
+          if(S.persisted !== !!r){ S.persisted = !!r; saveNow(); }
+        }).catch(() => {});
+      }catch(e){}
+    }
+    function encodeBackup(){
+      const json = JSON.stringify(buildSave(false));
+      const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      return BACKUP_PREFIX + b64;
+    }
+    function decodeBackup(code){
+      code = (code || "").replace(/\s+/g, "");
+      if(!code) throw new Error("empty");
+      let json;
+      if(code.charAt(0) === "{") json = code;
+      else {
+        if(code.indexOf(BACKUP_PREFIX) === 0) code = code.slice(BACKUP_PREFIX.length);
+        let b = code.replace(/-/g, "+").replace(/_/g, "/"); while(b.length % 4) b += "=";
+        json = decodeURIComponent(escape(atob(b)));
+      }
+      const o = JSON.parse(json);
+      if(!o || typeof o !== "object" || (!o.stars && !o.completed && o.coins === undefined)) throw new Error("not a save");
+      return normalizeSave(o);
+    }
     const PRICES = { hint:15, undo:10, shuffle:20, moves:40 };
 
     /* ================= tiny synth sounds ================= */
@@ -1272,9 +1446,43 @@
       S.boost.hint = Math.max(S.boost.hint, 2);
       S.boost.undo = Math.max(S.boost.undo, 4);
       S.boost.shuffle = Math.max(S.boost.shuffle, 1);
+      savedCurrent = null;
       render();
+      saveNow();
+    }
+    function showFail(){
+      const b = $("#buyMovesBtn");
+      b.innerHTML = "+20 Moves · " + PRICES.moves + " coins";
+      b.disabled = S.coins < PRICES.moves;
+      $("#failOverlay").hidden = false;
+    }
+    // bring back a saved deal exactly as it was left
+    function resumeGame(c, msg){
+      REG = c.reg; FAMTOTAL = c.famtotal;
+      S.level = c.level;
+      G = { st: c.st, cfg: levelCfg(c.level), history: Array.isArray(c.history) ? c.history : [], sel: null, hintPair: null,
+            lastFlip: [], lastBank: null, over: false, started: true };
+      savedCurrent = null;
+      hideOverlays();
+      showScreen("game");
+      render();
+      if(G.st.movesLeft <= 0){ G.over = true; showFail(); }
+      else if(msg) toast(msg);
+      saveNow();
+    }
+    function inProgressLevel(){
+      if(G && !G.over) return G.cfg.n;
+      if(!G && savedCurrent) return savedCurrent.level;
+      return 0;
+    }
+    function continueGame(){
+      if(G && !G.over){ hideOverlays(); showScreen("game"); render(); return; }
+      if(!G && savedCurrent){ resumeGame(savedCurrent, "Level " + savedCurrent.level + " — picking up where you left off"); return; }
+      startLevel(nextLevel());
     }
     function startLevel(n){
+      // same level still in progress: go back to that board instead of a new deal
+      if(inProgressLevel() === n){ continueGame(); return; }
       S.level = n;
       showScreen("game");
       loadLevel(n);
@@ -1336,11 +1544,9 @@
       if(st.movesLeft <= 0){
         G.over = true;
         buzz([40,50,40]); sfx.error();
-        const b = $("#buyMovesBtn");
-        b.innerHTML = "+20 Moves · " + PRICES.moves + " coins";
-        b.disabled = S.coins < PRICES.moves;
-        setTimeout(() => { $("#failOverlay").hidden = false; }, 450);
+        setTimeout(showFail, 450);
       }
+      saveNow();
     }
     function onWin(){
       G.over = true;
@@ -1350,6 +1556,11 @@
       const reward = 30 + Math.min(30, st.movesLeft);
       S.coins += reward;
       S.stars[G.cfg.n] = Math.max(S.stars[G.cfg.n] || 0, stars);
+      const prevBest = S.best[G.cfg.n];
+      if(!prevBest || st.movesLeft > prevBest.movesLeft)
+        S.best[G.cfg.n] = { stars: S.stars[G.cfg.n], movesLeft: st.movesLeft, budget: st.budget, at: Date.now() };
+      else prevBest.stars = S.stars[G.cfg.n];
+      saveNow();
       buzz([25,40,25,40,70]); sfx.win();
       $("#winStars").innerHTML = [1,2,3].map(i => svgIcon("star", 1.4).replace("<svg", '<svg class="' + (i <= stars ? "on" : "off") + '"')).join("");
       $("#winReward").innerHTML = 'You earned <span class="coinPill">' + svgIcon("coin", 1.6) + reward + "</span>";
@@ -1393,7 +1604,7 @@
       if(!mv){
         G.hintPair = { srcIds: [], dstId: null, stock: true };
         toast("Cycle the deck to find the next card");
-        buzz(10); render();
+        buzz(10); render(); saveNow();
         return;
       }
       const srcIds = dragCards(G.st, mv.src);
@@ -1406,6 +1617,7 @@
       toast(describeMove(G.st, mv), 3200);
       buzz(10);
       render();
+      saveNow();
     }
     function useUndo(){
       if(!G) return;
@@ -1415,6 +1627,7 @@
       G.over = false; G.sel = null; G.hintPair = null; G.lastFlip = []; G.lastBank = null;
       buzz(8); sfx.flip();
       render();
+      saveNow();
     }
     function useShuffle(){
       if(!G || G.over) return;
@@ -1429,6 +1642,7 @@
       buzz([10,30,10]); sfx.draw();
       toast("Deck shuffled");
       render();
+      saveNow();
     }
 
     /* ================= map ================= */
@@ -1445,12 +1659,25 @@
           if(cfg.seqCount) feat += '<i style="background:#dd7f2e">' + svgIcon("steps", 2.6) + '</i>';
           if(cfg.locks) feat += '<i style="background:#64788f">' + svgIcon("lock", 2.6) + '</i>';
           if(cfg.halves) feat += '<i style="background:#2e8b8b">' + svgIcon("half", 2.6) + '</i>';
-          html += '<button class="lvlBtn" data-level="' + n + '"><span class="feat">' + feat + '</span><b>' + n + '</b>' +
+          const isDone = stars > 0, isNext = !isDone && n === nextLevel(), isIp = n === inProgressLevel();
+          html += '<button class="lvlBtn' + (isDone ? " done" : "") + (isNext ? " nextLvl" : "") + '" data-level="' + n + '"' +
+                  ' aria-label="Level ' + n + (isDone ? ", completed, " + stars + " star" + (stars > 1 ? "s" : "") : isNext ? ", next up" : "") + (isIp ? ", in progress" : "") + '">' +
+                  (isDone ? '<span class="doneMark">' + svgIcon("check", 3) + '</span>' : "") +
+                  (isIp ? '<span class="inprog">PLAYING</span>' : "") +
+                  '<span class="feat">' + feat + '</span><b>' + n + '</b>' +
                   '<span class="stars">' + "★★★".slice(0, stars) + "☆☆☆".slice(0, 3-stars) + '</span></button>';
         }
         html += "</div></div>";
       });
       grid.innerHTML = html;
+      const done = completedLevels().length, starSum = Object.values(S.stars).reduce((a, v) => a + v, 0);
+      const ip = inProgressLevel(), nx = nextLevel();
+      const contLabel = ip ? "Continue " + ip : done >= TOTAL_LEVELS ? "Play " + nx : (done ? "Play " + nx : "Start");
+      $("#mapProg").innerHTML =
+        '<div class="progTxt"><b>' + done + '/' + TOTAL_LEVELS + ' completed</b><span>★ ' + starSum + '/' + (TOTAL_LEVELS * 3) + ' stars</span>' +
+        '<div class="progBar"><i style="width:' + Math.round(done / TOTAL_LEVELS * 100) + '%"></i></div></div>' +
+        '<button class="bigBtn" id="continueBtn">' + contLabel + '</button>';
+      $("#continueBtn").addEventListener("click", () => { ac(); continueGame(); });
       grid.querySelectorAll(".lvlBtn").forEach(b => b.addEventListener("click", () => { ac(); startLevel(+b.dataset.level); }));
     }
 
@@ -1708,12 +1935,12 @@
     $("#playBtn").addEventListener("click", () => { $("#introOverlay").hidden = true; if(G) G.started = true; buzz(8); });
     $("#introHow").addEventListener("click", () => { $("#howOverlay").hidden = false; });
     $("#howBtn").addEventListener("click", () => { $("#howOverlay").hidden = false; });
-    $("#soundBtn").addEventListener("click", () => { S.sound = !S.sound; updateSoundBtn(); if(S.sound) sfx.place(); });
+    $("#soundBtn").addEventListener("click", () => { S.sound = !S.sound; updateSoundBtn(); if(S.sound) sfx.place(); saveNow(); });
     $("#menuBtn").addEventListener("click", () => { $("#pauseOverlay").hidden = false; });
     $("#resumeBtn").addEventListener("click", () => { $("#pauseOverlay").hidden = true; });
     $("#restartBtn").addEventListener("click", () => { hideOverlays(); loadLevel(S.level); if(G) G.started = true; });
     $("#pauseHowBtn").addEventListener("click", () => { $("#howOverlay").hidden = false; });
-    $("#pauseSoundBtn").addEventListener("click", () => { S.sound = !S.sound; updateSoundBtn(); });
+    $("#pauseSoundBtn").addEventListener("click", () => { S.sound = !S.sound; updateSoundBtn(); saveNow(); });
     $("#quitBtn").addEventListener("click", () => { hideOverlays(); showScreen("map"); });
     $("#nextBtn").addEventListener("click", () => { hideOverlays(); if(S.level >= TOTAL_LEVELS) showScreen("map"); else startLevel(S.level + 1); });
     $("#replayBtn").addEventListener("click", () => { hideOverlays(); loadLevel(S.level); if(G) G.started = true; });
@@ -1727,7 +1954,64 @@
       $("#failOverlay").hidden = true;
       buzz(12); sfx.place();
       render();
+      saveNow();
     });
+    function openProgress(){
+      const done = completedLevels(), starSum = Object.values(S.stars).reduce((a, v) => a + v, 0), ip = inProgressLevel();
+      $("#progStats").innerHTML =
+        "<b>" + done.length + "/" + TOTAL_LEVELS + "</b> levels completed · ★ " + starSum + "<br>" +
+        "Coins " + S.coins + " · Hints " + S.boost.hint + " · Undos " + S.boost.undo + " · Shuffles " + S.boost.shuffle + "<br>" +
+        (ip ? "Level " + ip + " in progress<br>" : "") +
+        '<span style="color:var(--ink-soft);font-size:12.5px">' +
+        (saveBlocked ? "Saving is blocked in this browser mode (private window?)." :
+         S.persisted ? "Saved on this device (protected storage)." : "Saved on this device. Clearing this site's data erases it — keep a backup code.") + "</span>";
+      $("#exportBox").hidden = true; $("#exportBox").value = "";
+      $("#importBox").value = ""; importArmed = null; $("#importBtn").textContent = "Restore from code";
+      $("#progOverlay").hidden = false;
+    }
+    let importArmed = null;
+    $("#progBtn").addEventListener("click", openProgress);
+    $("#pauseProgBtn").addEventListener("click", openProgress);
+    $("#exportBtn").addEventListener("click", () => {
+      saveNow();
+      const code = encodeBackup(), box = $("#exportBox");
+      box.value = code; box.hidden = false; box.focus(); box.select();
+      const done = ok => toast(ok ? "Backup code copied" : "Backup code shown — select and copy it");
+      try{ navigator.clipboard.writeText(code).then(() => done(true), () => { try{ done(document.execCommand("copy")); }catch(e){ done(false); } }); }
+      catch(e){ done(false); }
+    });
+    $("#importBtn").addEventListener("click", () => {
+      let d;
+      try{ d = decodeBackup($("#importBox").value); }
+      catch(e){ toast("That code doesn't look like a Solitaire Word Match backup"); sfx.error(); return; }
+      if(importArmed !== $("#importBox").value){
+        importArmed = $("#importBox").value;
+        $("#importBtn").textContent = "Tap again: replace with " + Object.keys(d.stars).length + "/" + TOTAL_LEVELS + " completed";
+        return;
+      }
+      // keep the progress being replaced as a spare copy on this device
+      try{ localStorage.setItem(SAVE_KEY + ".before-import-" + Date.now(), JSON.stringify(buildSave(false))); }catch(e){}
+      applySave(d);
+      G = null;
+      saveNow();
+      updateSoundBtn(); renderCoins();
+      hideOverlays(); showScreen("map");
+      toast("Progress restored — " + completedLevels().length + "/" + TOTAL_LEVELS + " completed");
+    });
+    window.addEventListener("storage", e => {
+      if(e.key !== SAVE_KEY || e.newValue === null) return;
+      let o; try{ o = JSON.parse(e.newValue); }catch(_){ return; }
+      const d = normalizeSave(o);
+      mergeProgress(d);
+      // coins, boosters and settings follow whichever window saved last
+      S.coins = d.coins; S.boost = d.boost; S.sound = d.sound;
+      if(!G || G.over) savedCurrent = d.current;
+      lastWritten = e.newValue;
+      updateSoundBtn(); renderCoins();
+      if(!$("#mapScreen").hidden) renderMap(); else if(G) renderBoosters();
+    });
+    document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden") saveNow(); });
+    window.addEventListener("pagehide", saveNow);
     $("#hintBtn").addEventListener("click", useHint);
     $("#undoBtn").addEventListener("click", useUndo);
     $("#shuffleBtn").addEventListener("click", useShuffle);
@@ -1735,13 +2019,17 @@
     window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if(G && !$("#gameScreen").hidden) render(); }, 120); });
 
     /* ================= init ================= */
+    const BOOT = readSave();
+    applySave(BOOT);
     buildHow();
     updateSoundBtn();
     renderCoins();
-    renderMap();
-    showScreen("map");
+    if(savedCurrent) resumeGame(savedCurrent, "Level " + savedCurrent.level + " — picking up where you left off");
+    else { showScreen("map"); const nb = document.querySelector(".lvlBtn.nextLvl"); if(nb) nb.scrollIntoView({ block:"center" }); }
+    saveNow();
+    requestPersist();
     // debug/test hook (used by automated verification; harmless in play)
-    window.__wp = { generateLevel, solve, levelCfg, FAMILIES, applyMove, enumMoves, canDrop, isWin, getState: () => G, session: S };
+    window.__wp = { generateLevel, solve, levelCfg, FAMILIES, applyMove, enumMoves, canDrop, isWin, getState: () => G, session: S, SAVE_KEY, encodeBackup, decodeBackup, saveNow };
 </script>
 <script>
 /* In-page install button + service worker registration (installability). */
@@ -1749,7 +2037,7 @@
   var btn = document.getElementById('installBtn');
   var deferred = null;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=20261008-play2', { scope: './' }).catch(function(){});
+    navigator.serviceWorker.register('sw.js?v=20261008-play3', { scope: './' }).catch(function(){});
   }
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
