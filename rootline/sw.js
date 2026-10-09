@@ -1,8 +1,8 @@
 /* Rootline service worker: caches the game so it works offline after the first load.
    Stale-while-revalidate for same-origin files. */
-var CACHE = 'rootline-v3';
+var CACHE = 'rootline-v4';
 var FILES = ['./', 'index.html', 'style.css', 'data.js', 'scripts.js', 'app.js',
-  'assets/manifest.json', 'assets/icon-192.png', 'assets/icon-512.png', 'assets/icon-180.png'];
+  'assets/icon-192.png', 'assets/icon-512.png', 'assets/icon-180.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
 });
@@ -13,6 +13,15 @@ self.addEventListener('activate', function (e) {
 });
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  var u = new URL(e.request.url);
+  if (/manifest\.json$/.test(u.pathname)) return; // always fresh from network
+  if (e.request.mode === 'navigate') {
+    e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(function (res) {
+      if (res && res.ok) caches.open(CACHE).then(function (c) { c.put(e.request, res.clone()); });
+      return res;
+    }).catch(function () { return caches.match(e.request, { ignoreSearch: true }).then(function (h) { return h || caches.match('index.html'); }); }));
+    return;
+  }
   e.respondWith(caches.open(CACHE).then(function (c) {
     return c.match(e.request, { ignoreSearch: true }).then(function (hit) {
       var net = fetch(e.request).then(function (res) { if (res && res.ok) c.put(e.request, res.clone()); return res; }).catch(function () { return hit; });
