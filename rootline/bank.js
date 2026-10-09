@@ -310,9 +310,9 @@ var U = function(){ return window.ROOTLINE.ui; };
 var B = null;   /* current sprint */
 var GL2 = {};   /* meanings of practice words: they arrive with the bank's answer */
 function gloss(it){ var k = it.lang+":"+it.text; return GL2[k] || (SEED && SEED.gloss[k]) || ""; }
-function wordTile(it, showGloss){
-  var g = gloss(it);
-  return '<div class="wb-word"><span class="wb-lang">'+(FLAG[it.lang]||"")+' '+U().esc(LN[it.lang]||it.lang)+'</span><b class="sc'+(it.text.length>20?' xlong':it.text.length>14?' long':'')+'" lang="'+U().esc(it.lang)+'">'+U().esc(it.text)+'</b>'+
+function wordTile(it, showGloss, r){
+  var g = gloss(it), pool = !(r && r.practice), RS = window.RLSay;
+  return '<div class="wb-word"><span class="wb-lang">'+(FLAG[it.lang]||"")+' '+U().esc(LN[it.lang]||it.lang)+'</span><b class="sc'+(it.text.length>20?' xlong':it.text.length>14?' long':'')+'" lang="'+U().esc(it.lang)+'">'+U().esc(it.text)+'</b>'+(RS ? RS.btn(it.text, it.lang, {pool:pool}) + (it.lang==="grc" ? RS.help(it.text, "Ancient Greek", {hook:false}) : "") : "")+
     (showGloss && g ? '<i>“'+U().esc(g)+'”</i>' : '')+'</div>';
 }
 function srcLinks(c){
@@ -374,21 +374,21 @@ function renderCard(){
     /* practice is labelled; open rounds and quiet checks share one look: same tag, no meanings (checks have none to show) */
     var mg = !r.dealt && (B.hint || done);
     h += '<div class="wb-tag">'+(r.practice?"📘 Practice round: the answer comes right after":"🌱 Your call: help the bank decide")+'</div>';
-    h += '<p class="q" style="margin-top:4px">Do these two words share a root?</p><div class="wb-pair">'+wordTile(r.items[0], mg)+'<span class="wb-amp">&</span>'+wordTile(r.items[1], mg)+'</div>';
+    h += '<p class="q" style="margin-top:4px">Do these two words share a root?</p><div class="wb-pair">'+wordTile(r.items[0], mg, r)+'<span class="wb-amp">&</span>'+wordTile(r.items[1], mg, r)+'</div>';
     if(!done){
       h += '<div class="wb-ans"><button class="btn wb-yes" data-act="wb-ans" data-a="yes">🌳 Same root</button><button class="btn wb-no" data-act="wb-ans" data-a="no">✂️ Not related</button></div>';
       h += '<div class="row" style="margin-top:10px">'+(B.hint||r.dealt?'':'<button class="btn wb-small" data-act="wb-hint">💡 Show meanings</button>')+'<button class="btn wb-small" data-act="wb-ans" data-a="unsure">🤷 Not sure</button></div>';
     } else h += feedback(r);
   } else if(r.kind==="similarity_vote"){
-    h += '<div class="wb-tag">🌱 Open round: your judgement</div><p class="q" style="margin-top:4px">How close are their meanings?</p><div class="wb-pair">'+wordTile(r.items[0], true)+'<span class="wb-amp">≈</span>'+wordTile(r.items[1], true)+'</div>';
+    h += '<div class="wb-tag">🌱 Open round: your judgement</div><p class="q" style="margin-top:4px">How close are their meanings?</p><div class="wb-pair">'+wordTile(r.items[0], true, r)+'<span class="wb-amp">≈</span>'+wordTile(r.items[1], true, r)+'</div>';
     if(!done){
       h += '<div class="wb-scale">'+[["3","Same"],["2","Close"],["1","Loosely"],["0","Different"]].map(function(x){ return '<button class="btn" data-act="wb-ans" data-a="'+x[0]+'">'+x[1]+'</button>'; }).join("")+'</div>';
     } else h += feedback(r);
   } else if(r.kind==="bridge_wording"){
     if(!B.opts) B.opts = shuffle(r.options || []).concat(["none of these"]);   /* fixed answer set: the bank only accepts these */
-    h += '<div class="wb-tag">🌱 Open round: find the bridge</div><p class="q" style="margin-top:4px">These English words are cousins. Which word links their meanings?</p><div class="wb-pair">'+wordTile(r.items[0], true)+'<span class="wb-amp">↔</span>'+wordTile(r.items[1], true)+'</div>';
+    h += '<div class="wb-tag">🌱 Open round: find the bridge</div><p class="q" style="margin-top:4px">These English words are cousins. Which word links their meanings?</p><div class="wb-pair">'+wordTile(r.items[0], true, r)+'<span class="wb-amp">↔</span>'+wordTile(r.items[1], true, r)+'</div>';
     if(!done){
-      h += '<div class="opts">'+B.opts.map(function(o){ return '<button class="opt" data-act="wb-ans" data-a="'+esc(o==="none of these"?"none":o)+'"><span class="of">'+esc(o)+'</span></button>'; }).join("")+'</div>';
+      h += '<div class="opts">'+B.opts.map(function(o){ return '<button class="opt" data-act="wb-ans" data-a="'+esc(o==="none of these"?"none":o)+'"><span class="of">'+esc(o)+(o!=="none of these"&&window.RLSay?' '+RLSay.btn(o,"en",{pool:!r.practice}):'')+'</span></button>'; }).join("")+'</div>';
     } else h += feedback(r);
   }
   h += '</div>';

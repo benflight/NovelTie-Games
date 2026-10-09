@@ -9,7 +9,7 @@ window.ROOTLINE_STORIES = {"dashboard": ["In the 1840s a dashboard was a board o
   window.wordStory = function(w){ w = String(w||"").toLowerCase(); return ST.hasOwnProperty(w) ? {word:w, text:ST[w][0], src:ST[w][1], folk:ST[w][2]==="folk"} : null; };
   window.wordStoryHTML = function(w, label){
     var s = window.wordStory(w); if(!s) return "";
-    return '<div class="card wstory"><div class="wstory-lbl">📖 '+e(label||"Word story")+'</div><div class="wstory-w">'+e(s.word)+(s.folk?' <span class="wstory-myth">myth busted</span>':'')+'</div>'+
+    return '<div class="card wstory"><div class="wstory-lbl">📖 '+e(label||"Word story")+'</div><div class="wstory-w">'+e(s.word)+(window.RLSay?' '+window.RLSay.btn(s.word,"English"):'')+(s.folk?' <span class="wstory-myth">myth busted</span>':'')+'</div>'+
       '<p class="wstory-t">'+e(s.text)+'</p><a class="wstory-src" href="'+e(s.src)+'" target="_blank" rel="noopener">Source: '+e(host(s.src))+'</a></div>';
   };
   /* same story for everyone on a given Mountain-Time day */

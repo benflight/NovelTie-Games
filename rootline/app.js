@@ -18,6 +18,8 @@ try{ var raw = localStorage.getItem(KEY); if(raw){ var o = JSON.parse(raw); for(
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){} }
 
 /* ---------- utils ---------- */
+function SB(t,l,o){ return window.RLSay ? RLSay.btn(t,l,o) : ""; }
+function SH(t,l,o){ return window.RLSay ? RLSay.help(t,l,o) : ""; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
 function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function denverDate(d){
@@ -120,17 +122,17 @@ function renderRound(){
   var right = '<span class="pill">'+R.score+' pts</span>';
   h += topbar(R.daily?"Daily Dig":TRACKS[R.track].name, right);
   if(R.stage==="intro"){
-    h += '<div class="wordcard"><div class="tag">'+(R.daily?"Today's word":"Your word")+'</div><div class="w">'+esc(w.w)+'</div><div class="d">'+esc(w.def)+'</div></div><div class="sep"></div>';
+    h += '<div class="wordcard"><div class="tag">'+(R.daily?"Today's word":"Your word")+'</div><div class="w">'+esc(w.w)+' '+SB(w.w,"English")+'</div><div class="d">'+esc(w.def)+'</div></div><div class="sep"></div>';
     h += '<div class="card"><p style="margin-top:0">This word has <b>'+n+'</b> older layers beneath it. Guess each ancestor, one layer at a time.</p><button class="btn primary" data-act="dig">⛏ Start digging</button></div>';
   } else if(R.stage==="dig"){
     if(!R.opts) R.opts = layerOpts(w.L[R.layer]);
     h += '<div class="progress">'+w.L.map(function(_,i){return '<i class="'+(i<R.results.length?"on":"")+'"></i>';}).join("")+'</div>';
     h += '<div class="dig"><div class="strata" id="strata">'+strataHTML()+'</div><div>';
     var L = w.L[R.layer], above = R.layer===0? w.w : w.L[R.layer-1].f;
-    h += '<p class="q">Layer '+(R.layer+1)+' of '+n+': what lies beneath <em class="sc">'+esc(above)+'</em>?</p><div class="opts">';
+    h += '<p class="q">Layer '+(R.layer+1)+' of '+n+': what lies beneath <em class="sc">'+esc(above)+'</em> '+SB(above, R.layer===0?"English":w.L[R.layer-1].l)+'?</p><div class="opts">';
     R.opts.forEach(function(o,i){
       var cls = ""; if(R.answered){ if(o.ok) cls=" right"; else if(i===R.picked) cls=" wrong"; }
-      h += '<button class="opt'+cls+'" data-act="pick" data-i="'+i+'"'+(R.answered?" disabled":"")+'><span class="ol">'+esc(o.l)+'</span><span class="of sc">'+esc(o.f)+'</span><span class="og">“'+esc(o.g)+'”</span></button>';
+      h += '<button class="opt'+cls+'" data-act="pick" data-i="'+i+'"'+(R.answered?" disabled":"")+'><span class="ol">'+esc(o.l)+'</span><span class="of sc">'+esc(o.f)+' '+SB(o.f,o.l)+'</span>'+SH(o.f,o.l,{hook:!!R.answered})+'<span class="og">“'+esc(o.g)+'”</span></button>';
     });
     h += '</div>';
     if(R.answered){
@@ -140,12 +142,12 @@ function renderRound(){
     }
     h += '</div></div>';
   } else if(R.stage==="cousins"){
-    h += '<div class="card" style="margin-bottom:12px"><h3>Cousins of “'+esc(w.w)+'”</h3><div class="muted small">Root: <span class="sc" style="color:var(--gold2)">'+esc(w.root.f)+'</span> · '+esc(w.root.l)+' “'+esc(w.root.g)+'”. Tap a word in another script to read it letter by letter.</div></div>';
+    h += '<div class="card" style="margin-bottom:12px"><h3>Cousins of “'+esc(w.w)+'”</h3><div class="muted small">Root: <span class="sc" style="color:var(--gold2)">'+esc(w.root.f)+'</span> '+SB(w.root.f,w.root.l)+' · '+esc(w.root.l)+' “'+esc(w.root.g)+'”.'+SH(w.root.f,w.root.l)+' Tap a word in another script to read it letter by letter.</div></div>';
     h += mapSVG(w.C) + '<div class="cousins">';
     w.C.forEach(function(c,i){
       var sc=S.detect(c.n), gate=S[sc], tapl = sc!=="latin";
       h += '<button class="cousin" data-act="'+(tapl?"letters":"noop")+'" data-i="'+i+'" data-region="'+c.r+'">'+(gate?'<span class="gate">'+(gate.ready?"tap to read":"gate soon")+'</span>':"")+
-        '<span class="lg">'+esc(c.l)+'</span><span class="n">'+(c.glyph?GLYPH[c.glyph]:"")+esc(c.n)+'</span>'+(c.t?'<span class="t">'+esc(c.t)+'</span>':"")+'<span class="gl">“'+esc(c.g)+'”</span></button>';
+        '<span class="lg">'+esc(c.l)+'</span><span class="n">'+(c.glyph?GLYPH[c.glyph]:"")+esc(c.n)+' '+SB(c.n,c.l)+'</span>'+(SH(c.n,c.l)||(c.t?'<span class="t">'+esc(c.t)+'</span>':""))+'<span class="gl">“'+esc(c.g)+'”</span></button>';
     });
     h += '</div>'+(w.note?'<div class="note">'+esc(w.note)+'</div>':'<div class="sep"></div>')+'<button class="btn primary" data-act="tobonus">⭐ Bonus round →</button>';
   } else if(R.stage==="bonus"){
@@ -153,18 +155,18 @@ function renderRound(){
     h += '<div class="card"><h3>Bonus: word family</h3><p style="margin-top:0">'+esc(B.p)+' <span class="muted small">Pick all that apply.</span></p><div class="chips">';
     R.bonusList.forEach(function(b,i){
       var cls=""; if(R.bonusChecked){ if(b.ok&&R.bonusSel[i]) cls=" right"; else if(!b.ok&&R.bonusSel[i]) cls=" wrong"; else if(b.ok) cls=" missed"; } else if(R.bonusSel[i]) cls=" sel";
-      h += '<button class="chip'+cls+'" data-act="chip" data-i="'+i+'"'+(R.bonusChecked?" disabled":"")+'>'+esc(b.w)+'</button>';
+      h += '<button class="chip'+cls+'" data-act="chip" data-i="'+i+'"'+(R.bonusChecked?" disabled":"")+'>'+esc(b.w)+' '+SB(b.w,"English")+'</button>';
     });
     h += '</div>';
     if(R.bonusChecked){
       h += '<p><b style="color:var(--gold2)">+'+R.bonusPts+' pts</b> · '+R.bonusHits+' of '+B.y.length+' found.</p>';
-      R.bonusList.forEach(function(b){ if(!b.ok) h += '<div class="explain">✗ <b>'+esc(b.w)+'</b>: '+esc(b.why)+'</div>'; });
+      R.bonusList.forEach(function(b){ if(!b.ok) h += '<div class="explain">✗ <b>'+esc(b.w)+'</b> '+SB(b.w,"English")+': '+esc(b.why)+'</div>'; });
       h += '<div class="sep"></div><button class="btn primary" data-act="finish">See your dig →</button>';
     } else h += '<button class="btn primary" data-act="checkbonus">Check</button>';
     h += '</div>';
   } else if(R.stage==="done"){
     var hits=R.results.filter(Boolean).length;
-    h += '<div class="wordcard"><div class="tag">'+(hits===n?"Perfect dig!":"Dig complete")+'</div><div class="w" style="font-size:clamp(36px,9vw,60px)">'+esc(w.w)+'</div><div class="d">← '+w.L.map(function(l){return esc(l.f);}).join(" ← ")+'</div></div><div class="sep"></div>';
+    h += '<div class="wordcard"><div class="tag">'+(hits===n?"Perfect dig!":"Dig complete")+'</div><div class="w" style="font-size:clamp(36px,9vw,60px)">'+esc(w.w)+' '+SB(w.w,"English")+'</div><div class="d">← '+w.L.map(function(l){return esc(l.f);}).join(" ← ")+'</div></div><div class="sep"></div>';
     if(window.wordStoryHTML) h += window.wordStoryHTML(w.w) ;
     h += '<div class="card"><p class="score">'+R.score+'</p><p class="muted" style="text-align:center;margin:0">points'+(hits===n?" (incl. +10 perfect-dig bonus)":"")+'</p><div class="trail">'+esc(R.trail)+'</div>';
     h += '<p class="muted small" style="text-align:center">Root added to your Codex: <span class="sc" style="color:var(--gold2)">'+esc(w.root.f)+'</span> “'+esc(w.root.g)+'”</p>';
@@ -176,12 +178,12 @@ function renderRound(){
   if(R.stage==="done" && window.RootlineBank) window.RootlineBank.helperCard(w);
 }
 function strataHTML(){
-  var w=R.word, n=w.L.length, h='<div class="stratum surface"><span class="l">English</span><span class="f">'+esc(w.w)+'</span><span class="g">'+esc(w.def)+'</span></div>';
+  var w=R.word, n=w.L.length, h='<div class="stratum surface"><span class="l">English</span><span class="f">'+esc(w.w)+' '+SB(w.w,"English")+'</span><span class="g">'+esc(w.def)+'</span></div>';
   for(var i=0;i<n;i++){
     var L=w.L[i];
     if(i<R.results.length){
       var isNew = (i===R.results.length-1 && R.justDug);
-      h += '<div class="stratum '+(R.results[i]?"hit":"miss")+(isNew?" new":"")+'" style="background:'+stratumColor(i,n)+'"><span class="l">'+esc(L.l)+'</span><span class="f sc">'+(L.glyph?GLYPH[L.glyph]:"")+esc(L.f)+'</span><span class="g">“'+esc(L.g)+'”</span></div>';
+      h += '<div class="stratum '+(R.results[i]?"hit":"miss")+(isNew?" new":"")+'" style="background:'+stratumColor(i,n)+'"><span class="l">'+esc(L.l)+'</span><span class="f sc">'+(L.glyph?GLYPH[L.glyph]:"")+esc(L.f)+' '+SB(L.f,L.l)+'</span><span class="g">“'+esc(L.g)+'”</span>'+SH(L.f,L.l)+'</div>';
     } else h += '<div class="stratum unknown" style="background-color:'+stratumColor(i,n)+'"><span class="f">?</span><span class="l">layer '+(i+1)+'</span></div>';
   }
   return h;
@@ -321,9 +323,9 @@ function renderCodex(){
   app.innerHTML = h;
 }
 function codexModal(id){
-  var w=byId(id), h='<h3>'+esc(w.w)+'</h3><p class="muted" style="margin-top:0">'+esc(w.def)+'</p><div class="chain">';
-  w.L.forEach(function(L){ h += '<div><span class="dim small">'+esc(L.l)+'</span><br><b class="sc">'+(L.glyph?GLYPH[L.glyph]:"")+esc(L.f)+'</b> <i class="muted">“'+esc(L.g)+'”</i><div class="small muted">'+esc(L.why)+'</div></div>'; });
-  h += '</div><h3 style="font-size:18px">Cousins</h3><p class="sc">'+w.C.map(function(c){return esc(c.n)+(c.t?" ("+esc(c.t)+")":"")+' <span class="dim small">'+esc(c.l)+'</span>';}).join(" · ")+'</p>';
+  var w=byId(id), h='<h3>'+esc(w.w)+' '+SB(w.w,"English")+'</h3><p class="muted" style="margin-top:0">'+esc(w.def)+'</p><div class="chain">';
+  w.L.forEach(function(L){ h += '<div><span class="dim small">'+esc(L.l)+'</span><br><b class="sc">'+(L.glyph?GLYPH[L.glyph]:"")+esc(L.f)+'</b> '+SB(L.f,L.l)+' <i class="muted">“'+esc(L.g)+'”</i>'+SH(L.f,L.l)+'<div class="small muted">'+esc(L.why)+'</div></div>'; });
+  h += '</div><h3 style="font-size:18px">Cousins</h3><p class="sc">'+w.C.map(function(c){return esc(c.n)+' '+SB(c.n,c.l)+(c.t?" ("+esc(c.t)+")":"")+' <span class="dim small">'+esc(c.l)+'</span>';}).join(" · ")+'</p>';
   if(w.note) h += '<div class="note">'+esc(w.note)+'</div>';
   h += '<div class="row"><button class="btn primary" data-act="replay" data-id="'+id+'">⛏ Dig again</button><button class="btn" data-act="close">Close</button></div>';
   modal(h);
