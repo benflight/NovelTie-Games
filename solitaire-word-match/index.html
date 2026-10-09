@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Solitaire Word Match" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="manifest" href="assets/manifest.json" />
+    <link rel="manifest" href="assets/manifest.json?v=2" />
     <link rel="apple-touch-icon" href="assets/icon-180.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
     <meta name="swm-build" content="20261008-play4" />
@@ -2057,7 +2057,7 @@
   var btn = document.getElementById('installBtn');
   var deferred = null;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=20261008-play4', { scope: './' }).catch(function(){});
+    navigator.serviceWorker.register('sw.js?v=20261008-play4b', { scope: './' }).catch(function(){});
   }
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
