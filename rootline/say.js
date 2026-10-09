@@ -37,7 +37,8 @@
     try{
       if(!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined"){ note("This browser can't speak words aloud."); return false; }
       var u = new SpeechSynthesisUtterance(text), v = pickVoice(code);
-      if(v){ u.voice = v; u.lang = v.lang; } else if(code) u.lang = code;
+      if(code) u.lang = code;
+      if(v){ try{ u.voice = v; u.lang = v.lang; }catch(_){} }
       u.rate = 0.85; u.onerror = function(){ note("Couldn't play that one on this device."); };
       speechSynthesis.cancel(); speechSynthesis.speak(u); return true;
     }catch(_){ note("Couldn't play that one on this device."); return false; }
