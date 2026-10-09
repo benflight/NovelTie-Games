@@ -187,3 +187,27 @@ h3{font-family:var(--serif);color:var(--gold2);margin:4px 0 10px;font-weight:600
 .wb-checking{opacity:.8}
 .wb-gate{color:var(--gold2)}
 .btn[disabled]{opacity:.5;cursor:default}
+
+/* word stories */
+.wstory{margin:12px 0;border-color:#6b5631;background:linear-gradient(180deg,rgba(217,178,95,.10),rgba(217,178,95,.03))}
+.wstory-lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.wstory-w{font-size:22px;font-weight:700;margin:2px 0 4px}
+.wstory-myth{font-size:11px;font-weight:700;background:#5a2a1c;color:#f6c9b5;border-radius:6px;padding:1px 6px;vertical-align:middle}
+.wstory-t{margin:0;line-height:1.45;overflow-wrap:break-word}
+.wstory-src{display:inline-block;margin-top:6px;font-size:12px;color:var(--gold)}
+
+/* hear-it buttons + script help */
+.say{display:inline-flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;margin-left:2px;border-radius:50%;font-size:15px;line-height:1;
+  cursor:pointer;vertical-align:middle;background:rgba(217,178,95,.14);border:1px solid rgba(217,178,95,.35);font-style:normal;font-weight:400;-webkit-tap-highlight-color:transparent}
+.say:active{transform:scale(.92)}
+.xlw{display:block;margin-top:3px;font-size:13px;line-height:1.35;font-family:system-ui,sans-serif;font-weight:400;text-align:inherit}
+.xl{display:block;color:#e9dcc0}.xl b{color:var(--gold2);font-weight:700;letter-spacing:.02em}
+.xl-tr{font-style:italic}
+.xl-hook{display:block;color:#cdbb95}.xl-note{display:block;color:#a8987a;font-size:12px}
+#say-note{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(20,16,12,.94);color:#f3e9d4;border:1px solid #6b5631;border-radius:12px;
+  padding:8px 14px;font-size:14px;max-width:88vw;opacity:0;pointer-events:none;transition:opacity .2s;z-index:999}
+#say-note.show{opacity:1}
+#say-credit{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:rgba(20,16,12,.94);color:#e9dcc0;border:1px solid #6b5631;border-radius:10px;
+  padding:6px 12px;font-size:12.5px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s;z-index:999}
+#say-credit.show{opacity:1;pointer-events:auto}#say-credit a{color:var(--gold)}
+.credits{padding-left:18px;font-size:13px;line-height:1.5;max-height:60vh;overflow:auto}.credits a{color:var(--gold)}
