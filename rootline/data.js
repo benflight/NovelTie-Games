@@ -225,7 +225,7 @@ window.ROOTLINE_WORDS = [
    x:[["Old English","tōh","tough"],["Old English","tunge","tongue"],["Latin","dēns","tooth (a cousin)"]]},
   {f:"*tanþs", l:"Proto-Germanic", g:"tooth", why:"Proto-Germanic *tanþs; English lost the n (German kept it: Zahn).",
    x:[["Proto-Germanic","*tungǭ","tongue"],["Proto-Germanic","*tanhuz","tough"],["Ancient Greek","odoús","tooth (a cousin)"]]},
-  {f:"*h₃dónts", l:"Proto-Indo-European", g:"tooth", why:"PIE *h₃dónts, probably 'the eating one', from *h₁ed- 'to eat'.",
+  {f:"*h₃dónts", l:"Proto-Indo-European", g:"tooth", why:"PIE *h₃dónts, probably 'the biting one', from *h₃ed- 'to bite'. Older books (and Grokipedia) give *h₁dónt-, 'the eating one', from *h₁ed- 'to eat': disputed.",
    x:[["Proto-Indo-European","*ǵómbʰos","peg, tooth (→ comb)"],["Proto-Indo-European","*dn̥ǵʰwéh₂s","tongue"],["Proto-Indo-European","*déḱm̥","ten"]]}
  ],
  C:[
@@ -290,7 +290,7 @@ window.ROOTLINE_WORDS = [
  L:[
   {f:"geoc", l:"Old English", g:"yoke", why:"Old English geoc; the g was pronounced like y.",
    x:[["Old English","geong","young"],["Old English","gēar","year"],["Latin","iugum","yoke (a cousin)"]]},
-  {f:"*jukô", l:"Proto-Germanic", g:"yoke", why:"Proto-Germanic *jukô gave German Joch.",
+  {f:"*juką", l:"Proto-Germanic", g:"yoke", why:"Proto-Germanic *juką gave German Joch and Gothic juk.",
    x:[["Proto-Germanic","*jungaz","young"],["Proto-Germanic","*jērą","year"],["Ancient Greek","zygón","yoke (a cousin)"]]},
   {f:"*yugóm", l:"Proto-Indo-European", g:"yoke", why:"PIE *yugóm, from *yewg- 'to join', is the source of Sanskrit yoga too.",
    x:[["Proto-Indo-European","*h₂yuh₁n̥ḱós","young"],["Proto-Indo-European","*yeh₁r-","year"],["Proto-Indo-European","*h₂éǵros","field"]]}
@@ -311,7 +311,7 @@ window.ROOTLINE_WORDS = [
 {id:"guru", w:"guru", def:"a revered teacher or expert", track:"world",
  root:{k:"pie-gwreh", f:"*gʷréh₂us", l:"Proto-Indo-European", g:"heavy"},
  L:[
-  {f:"गुरु guru", l:"Hindi", g:"teacher; venerable", why:"English borrowed guru (1610s) from Hindi, from Sanskrit guru.",
+  {f:"गुरु guru", l:"Hindi", g:"teacher; venerable", why:"English borrowed guru (1806, spelled gooroo) from Hindi, from Sanskrit guru.",
    x:[["Persian","gol","rose"],["Hindi","garam","hot (→ garam masala)"],["Sanskrit","jñāna","knowledge"]]},
   {f:"guru", l:"Sanskrit", g:"heavy, weighty; venerable", why:"Sanskrit guru first meant 'heavy': a teacher is a person of weight.",
    x:[["Sanskrit","gaura","white, bright"],["Sanskrit","guhā","cave, hiding place"],["Sanskrit","giri","mountain"]]},
@@ -377,7 +377,7 @@ window.ROOTLINE_WORDS = [
   {f:"democratia", l:"Medieval Latin", g:"democracy", why:"Via French démocratie from Medieval Latin democratia.",
    x:[["Latin","res publica","public matter (→ republic)"],["Latin","dominatio","lordship"],["Latin","civitas","citizenship (→ city)"]]},
   {f:"δημοκρατία", l:"Ancient Greek", g:"rule by the people", why:"Greek dēmokratía, in use in Athens by the 5th century BC.",
-   x:[["Ancient Greek","δημαγωγία (dēmagōgía)","leading the people"],["Ancient Greek","ἀριστοκρατία (aristokratía)","rule of the best"],["Ancient Greek","δαιμονία (daimonía)","possession by a spirit"]]},
+   x:[["Ancient Greek","δημαγωγία (dēmagōgía)","leading the people"],["Ancient Greek","ἀριστοκρατία (aristokratía)","rule of the best"],["Ancient Greek","δαιμόνιον (daimónion)","divine power, spirit"]]},
   {f:"δῆμος + κράτος", l:"Ancient Greek", g:"people + power, rule", why:"dêmos 'the people, district' + krátos 'strength, rule'.",
    x:[["Ancient Greek","δαίμων + κράτος","spirit + power"],["Ancient Greek","δῆμος + κρατήρ","people + mixing bowl"],["Ancient Greek","δόμος + κράτος","house + power"]]}
  ],
@@ -510,11 +510,11 @@ window.ROOTLINE_WORDS = [
 {id:"coffee", w:"coffee", def:"a drink brewed from roasted coffee beans", track:"world",
  root:{k:"ar-qahwa", f:"قهوة qahwa", l:"Arabic", g:"coffee (earlier: wine?)"},
  L:[
-  {f:"koffie", l:"Dutch", g:"coffee", why:"English coffee (1590s) came largely via Dutch koffie.",
+  {f:"koffie", l:"Dutch", g:"coffee", why:"English coffee (c. 1600; chaoua in 1598) came largely via Dutch koffie.",
    x:[["Dutch","koffer","trunk, case"],["Italian","caffè","coffee (a sibling borrowing)"],["Greek","kophinos","basket (→ coffer, coffin)"]]},
   {f:"kahve", l:"Ottoman Turkish", g:"coffee", why:"Europe met coffee through the Ottoman coffeehouses: Turkish kahve.",
    x:[["Turkish","kafes","cage"],["Turkish","kaftan","robe (→ caftan)"],["Turkish","kavun","melon"]]},
-  {f:"قهوة qahwa", l:"Arabic", g:"coffee", why:"Arabic qahwa. Beyond that it's disputed: possibly an old word for wine, or possibly Kaffa in Ethiopia.",
+  {f:"قهوة qahwa", l:"Arabic", g:"coffee", why:"Arabic qahwa. Beyond that it's disputed: Arab lexicographers linked it to a word for wine; a link to the Kaffa region of Ethiopia is also proposed, but many call it folk etymology.",
    x:[["Arabic","قهر qahr","conquest (→ Cairo, al-Qāhira)"],["Arabic","كهف kahf","cave"],["Arabic","قافلة qāfila","caravan"]]}
  ],
  C:[
@@ -553,7 +553,7 @@ window.ROOTLINE_WORDS = [
 {id:"tycoon", w:"tycoon", def:"a wealthy, powerful businessperson", track:"world",
  root:{k:"zh-dajun", f:"大 + 君", l:"Chinese", g:"great + lord"},
  L:[
-  {f:"大君 taikun", l:"Japanese", g:"great lord", why:"Taikun was a title used for the shogun with foreigners (1850s); Americans applied it to Lincoln, then to business moguls.",
+  {f:"大君 taikun", l:"Japanese", g:"great lord", why:"Taikun was the shogun's title in foreign relations (with Korea from the 1600s, with Westerners in the 1850s). In English by 1857; Lincoln's aides nicknamed him 'the Tycoon', then it passed to business moguls.",
    x:[["Japanese","大名 daimyō","feudal lord"],["Japanese","天皇 tennō","emperor"],["Japanese","大工 daiku","carpenter"]]},
   {f:"大 dà + 君 jūn", l:"Chinese", g:"great + lord, ruler", why:"Japanese borrowed the characters and their readings from Chinese: 大 'great' + 君 'lord'.",
    x:[["Chinese","太 tài + 公 gōng","supreme + duke"],["Chinese","天 tiān + 君 jūn","heaven + lord"],["Chinese","大 dà + 官 guān","great + official"]]}
@@ -627,11 +627,11 @@ window.ROOTLINE_WORDS = [
   n:[["robust","Latin robur 'oak'"],["rob","Old French rober, from Germanic"],["ribbon","Old French riban"]]}},
 
 {id:"mammoth", w:"mammoth", def:"an extinct woolly elephant; huge", track:"world",
- root:{k:"ural-mammoth", f:"*mēŋ-ońt (possibly)", l:"Mansi (Siberia)", g:"earth horn (possibly)"},
+ root:{k:"ural-mammoth", f:"*mān-oŋt (possibly)", l:"Mansi (Siberia)", g:"earth horn (possibly)"},
  L:[
-  {f:"мамонт mamont", l:"Russian", g:"mammoth", why:"English took mammoth (1700s) from Russian mamont, older mamot.",
+  {f:"мамонт mamont", l:"Russian", g:"mammoth", why:"English took mammoth (1706) from Russian mamont (older mamant, mammot').",
    x:[["Russian","мама mama","mom"],["Russian","мамка mamka","nurse, nanny"],["Latin","mamma","breast (→ mammal)"]]},
-  {f:"*mēŋ-ońt", l:"Mansi (possibly)", g:"earth horn", why:"Possibly from a Uralic language of Siberia such as Mansi, 'earth horn', since tusks were dug from frozen ground. Not certain.",
+  {f:"*mān-oŋt", l:"Proto-Mansi (possibly)", g:"earth horn", why:"Probably from a Uralic language of Siberia, such as Proto-Mansi *mān-oŋt 'earth horn', since tusks were dug from frozen ground. Not certain.",
    x:[["Mongolian","мангас mangas","ogre"],["Turkish","mamut","mammoth (a borrowing, not the source)"],["Hebrew","בהמות behemoth","great beast"]]}
  ],
  C:[
@@ -697,7 +697,7 @@ window.ROOTLINE_WORDS = [
   {f:"hebenus", l:"Latin", g:"ebony tree", why:"Via Old French eban(e) from Latin (h)ebenus.",
    x:[["Latin","ebur","ivory"],["Latin","ebrius","drunk (→ inebriated)"],["Latin","hibernus","wintry"]]},
   {f:"ἔβενος", l:"Ancient Greek", g:"ebony", why:"Greek ébenos, a trade word for the precious African wood.",
-   x:[["Ancient Greek","ἐλέφας (eléphas)","ivory, elephant"],["Ancient Greek","ἔβδομος (hébdomos)","seventh"],["Ancient Greek","ἐβραῖος (hebraîos)","Hebrew"]]},
+   x:[["Ancient Greek","ἐλέφας (eléphas)","ivory, elephant"],["Ancient Greek","ἕβδομος (hébdomos)","seventh"],["Ancient Greek","Ἑβραῖος (Hebraîos)","Hebrew"]]},
   {f:"hbny", l:"Egyptian", g:"ebony", why:"Egyptian hbny, imported from Nubia/Punt; Hebrew hovnim (Ezekiel 27:15) is from the same source.",
    x:[["Egyptian","nbw","gold"],["Egyptian","ḥmt","copper"],["Egyptian","ꜥš","cedar"]]}
  ],
@@ -714,9 +714,9 @@ window.ROOTLINE_WORDS = [
 {id:"oasis", w:"oasis", def:"a fertile spot in a desert with water", track:"ancient",
  root:{k:"eg-wht", f:"wḥꜣt", l:"Egyptian", g:"oasis"},
  L:[
-  {f:"ὄασις", l:"Greek", g:"oasis", why:"English oasis via Late Latin from Greek óasis (Herodotus).",
+  {f:"Ὄασις", l:"Ancient Greek", g:"Oasis (an Egyptian place); oasis", why:"English oasis via Late Latin from Greek Óasis, a name Herodotus used for an Egyptian oasis town.",
    x:[["Greek","ὠόν (ōón)","egg (→ ovoid)"],["Greek","ὠκεανός (ōkeanós)","ocean"],["Greek","οἶκος (oîkos)","house (→ economy)"]]},
-  {f:"ⲟⲩⲁϩⲉ ouahe", l:"Coptic", g:"dwelling place; oasis", why:"Greek took it from late Egyptian, attested in Coptic ouahe.",
+  {f:"wḥj", l:"Demotic Egyptian", g:"oasis", why:"Greek took it from late Egyptian (Demotic wḥj). The same word lives on in Coptic ouahe, written centuries after Herodotus.",
    x:[["Coptic","ⲟⲩⲟⲉⲓⲛ ouoein","light"],["Coptic","ⲙⲟⲟⲩ moou","water"],["Coptic","ⲱⲛϧ ōnkh","life"]]},
   {f:"wḥꜣt", l:"Egyptian", g:"oasis; cauldron-shaped valley", why:"Egyptian wḥꜣt (roughly 'wahat'). Arabic wāḥa 'oasis' comes from the same source.",
    x:[["Egyptian","mw","water"],["Egyptian","šꜥy","sand"],["Egyptian","dšrt","red land, desert"]]}
@@ -759,9 +759,9 @@ window.ROOTLINE_WORDS = [
 {id:"jasmine", w:"jasmine", def:"a shrub with fragrant white flowers", track:"world",
  root:{k:"fa-yasaman", f:"یاسمن yâsaman", l:"Persian", g:"jasmine"},
  L:[
-  {f:"jasmin", l:"French", g:"jasmine", why:"English jasmine (1560s) from French jasmin.",
+  {f:"jasmin", l:"French", g:"jasmine", why:"English jasmine (1570s) from French jasmin (earlier jessemin).",
    x:[["French","jaser","to chatter"],["Spanish","jazmín","jasmine (a sibling)"],["French","jaspe","jasper stone"]]},
-  {f:"ياسمين yāsamīn", l:"Arabic", g:"jasmine", why:"French got it from Arabic yāsamīn, probably via Spanish or Latin.",
+  {f:"ياسمين yāsamīn", l:"Arabic", g:"jasmine", why:"French got it from Arabic yāsamīn.",
    x:[["Arabic","ياقوت yāqūt","ruby, sapphire"],["Arabic","سمسم simsim","sesame"],["Arabic","زعفران zaʿfarān","saffron"]]},
   {f:"یاسمن yâsaman", l:"Persian", g:"jasmine", why:"Arabic borrowed it from Persian yâsaman, also a name.",
    x:[["Persian","گل gol","rose, flower"],["Persian","نیلوفر nilufar","water lily (→ nenuphar)"],["Persian","یاقوت yâqut","ruby"]]}
@@ -827,8 +827,8 @@ window.ROOTLINE_WORDS = [
  L:[
   {f:"chocolate", l:"Spanish", g:"chocolate", why:"English chocolate (c. 1600) via Spanish, from the Aztec drink.",
    x:[["Spanish","chorizo","sausage"],["Spanish","chocar","to crash"],["Portuguese","cacau","cacao"]]},
-  {f:"chocolātl", l:"Nahuatl", g:"chocolate drink", why:"Nahuatl chocolātl. Its first part is disputed: possibly xococ 'bitter' or a Maya word chocol 'hot'.",
-   x:[["Nahuatl","cacahuatl","cacao bean (a cousin word)"],["Nahuatl","xocolli","sour fruit"],["Nahuatl","tomatl","tomato"]]},
+  {f:"chocolātl", l:"Nahuatl", g:"chocolate drink", why:"Nahuatl chocolātl. Its first part is disputed: possibly xococ/xocolli 'bitter', chicol- 'beater, frothing stick', or a Maya word chocol 'hot'.",
+   x:[["Nahuatl","cacahuatl","cacao bean (a cousin word)"],["Nahuatl","xōchitl","flower"],["Nahuatl","tomatl","tomato"]]},
   {f:"ātl", l:"Nahuatl", g:"water", why:"The -ātl ending is Nahuatl ātl 'water': chocolate was a drink. (The first element is debated.)",
    x:[["Nahuatl","tlālli","earth"],["Nahuatl","tōnatiuh","sun"],["Nahuatl","calli","house"]]}
  ],
