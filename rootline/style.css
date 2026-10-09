@@ -174,8 +174,16 @@ h3{font-family:var(--serif);color:var(--gold2);margin:4px 0 10px;font-weight:600
 .wb-note a{color:var(--gold2)}
 .wb-helper{margin-top:14px}
 @media (min-width:900px){.wb-card,.wb-prog,.wb-note{max-width:760px;margin-left:auto;margin-right:auto}.wb-prog{margin-bottom:14px}}
-.wb-ts{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:60;max-width:calc(100vw - 24px)}
-.wb-ts:empty{display:none}
+.wb-human{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,10,14,.72);backdrop-filter:blur(2px)}
+.wb-human-card{width:100%;max-width:440px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.wb-ts-box{display:flex;justify-content:center;min-height:0;margin:4px 0}
+.wb-ts-box:not(:empty){min-height:68px}
+.wb-human-status{margin:8px 0 10px;min-height:1.3em}
+.wb-human[data-state=failed] .wb-human-status{color:var(--bad,#e88)}
+.wb-human[data-state=done] .wb-human-status{color:var(--good,#8d8)}
+.wb-human-actions:empty{display:none}
+.wb-spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:wbspin .8s linear infinite;vertical-align:-1px;margin-right:4px}
+@keyframes wbspin{to{transform:rotate(360deg)}}
 .wb-checking{opacity:.8}
 .wb-gate{color:var(--gold2)}
 .btn[disabled]{opacity:.5;cursor:default}

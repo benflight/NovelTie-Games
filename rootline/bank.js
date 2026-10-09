@@ -1,12 +1,13 @@
 /* Rootline Word Bank: "helpful game" rounds. Every answer becomes one event in a shared word bank that
    Similarize reads. Events queue in localStorage and upload in batches, so play works offline.
-   Check rounds ship WITHOUT answers: the bank reveals the answer + explanation in its reply. Offline answers
-   are queued and checked when online. Uploads need a short-lived session from POST /v1/session, which costs
-   one Cloudflare Turnstile check (invisible; shows a box only if Cloudflare wants an interaction).
+   Check rounds ship WITHOUT answers: the bank reveals the answer + explanation in its reply to the FIRST answer
+   (the scored one; "Not sure" counts as a miss). Offline answers are queued and checked when online.
+   Uploads need a short-lived session from POST /v1/session, which costs one Cloudflare Turnstile check per visit,
+   shown in a clear in-game "quick human check" card (never a stray box). Dealt checks are served in the bank's order.
    Vanilla JS, no dependencies. */
 (function(){
 "use strict";
-var GAME_VERSION = "rootline-helpful-2";
+var GAME_VERSION = "rootline-helpful-3";
 var CFG = window.ROOTLINE_BANK_CONFIG || {};                         /* see bank-config.js (prod switch lives there) */
 var DEFAULT_API = CFG.api || "https://rootline-bank-staging.ben-e22.workers.dev";
 var HOSTS = CFG.hosts || ["rootline-bank-staging.ben-e22.workers.dev", "rootline-bank.ben-e22.workers.dev"];
@@ -53,9 +54,9 @@ function uuid(){
   b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128; var h=[].map.call(b,function(x){return (x+256).toString(16).slice(1);}).join("");
   return h.slice(0,8)+"-"+h.slice(8,12)+"-"+h.slice(12,16)+"-"+h.slice(16,20)+"-"+h.slice(20);
 }
-var GATE0 = {min_checks:10, min_per_class:2, min_accuracy:0.75};
+var GATE0 = {min_checks:10, min_per_class:2, min_accuracy:0.75, min_days:2};
 var bs = {queue:[], sent:0, rounds:0, xp:0, seen:{}, sprints:0, lastFlush:null,
-  device:null, deal:[], dealDay:null, gate:GATE0, stats:{yn:0,yc:0,nn:0,nc:0}, counted:{}, evKey:{}, checks:{}, checked:0, checkedRight:0};
+  device:null, deal:[], dealDay:null, gate:GATE0, trust:{ok:false}, stats:{yn:0,yc:0,nn:0,nc:0}, cdays:{}, counted:{}, evKey:{}, checks:{}, checked:0, checkedRight:0};
 try{ var raw = localStorage.getItem(KEY); if(raw){ var o = JSON.parse(raw); for(var k in bs){ if(o[k]!==undefined) bs[k]=o[k]; } } }catch(e){}
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(bs)); }catch(e){ /* quota: drop oldest queued */ bs.queue = bs.queue.slice(-500); bs.checks = {}; try{ localStorage.setItem(KEY, JSON.stringify(bs)); }catch(_){} } }
 save();
@@ -72,18 +73,22 @@ function loadSeed(){
   return seedP;
 }
 
-/* ---------- warm-up gate (mirrors the server's: votes count once dealt checks show a steady eye for roots) ---------- */
+/* ---------- warm-up gate (mirrors the server's: right on dealt checks, on 2+ different days). The bank has the final
+   word: "Your votes count" only once its last tally says so (bs.trust from /v1/session). ---------- */
 function gateState(){
-  var g = bs.gate || GATE0, s = bs.stats, n = s.yn + s.nn;
+  var g = bs.gate || GATE0, s = bs.stats, n = s.yn + s.nn, days = Object.keys(bs.cdays || {}).length, minDays = g.min_days || 1;
   var acc = ((s.yc + 1) / (s.yn + 2) + (s.nc + 1) / (s.nn + 2)) / 2;
-  var ok = n >= g.min_checks && s.yn >= g.min_per_class && s.nn >= g.min_per_class && acc >= g.min_accuracy;
-  return {ok: ok, n: n, need: Math.max(0, g.min_checks - n), acc: acc, g: g};
+  var checksOk = n >= g.min_checks && s.yn >= g.min_per_class && s.nn >= g.min_per_class && acc >= g.min_accuracy;
+  var ok = checksOk && days >= minDays;
+  return {ok: ok, bank: !!(bs.trust && bs.trust.ok), checksOk: checksOk, n: n, days: days, minDays: minDays, need: Math.max(0, g.min_checks - n), acc: acc, g: g};
 }
 function gateLine(){
   var G = gateState();
-  if(!bs.device) return "Warming up: your votes start counting after "+G.g.min_checks+" check rounds (checked online).";
-  if(G.ok) return "✓ Your votes count. They're tallied into the word bank every few hours.";
-  if(G.need > 0) return "Warming up: "+G.need+" more check"+(G.need===1?"":"s")+" until your votes count.";
+  if(G.bank) return "✓ Your votes count. They're tallied into the word bank every few hours.";
+  if(!bs.device) return "Warming up: your votes start counting after "+G.g.min_checks+" check rounds on "+G.minDays+" different days.";
+  if(G.ok) return "✓ Checks done. Your votes start counting after the bank's next tally (every few hours).";
+  if(G.need > 0) return "Warming up: "+G.need+" more check"+(G.need===1?"":"s")+" until your votes count"+(G.minDays > 1 ? " (spread over "+G.minDays+" days)" : "")+".";
+  if(G.checksOk) return "Warming up: come back tomorrow for a few more checks. Votes count after checks on "+G.minDays+" different days.";
   return "Warming up: your votes count once your checks are about "+Math.round(G.g.min_accuracy*100)+"%+ right on both true cousins and look-alikes. Keep going!";
 }
 
@@ -103,40 +108,95 @@ function loadTurnstile(){
   });
   return tsP;
 }
-function turnstileToken(){
-  return loadTurnstile().then(function(ts){ return new Promise(function(res, rej){
-    var box = document.getElementById("wb-ts");
-    if(!box){ box = document.createElement("div"); box.id = "wb-ts"; box.className = "wb-ts"; document.body.appendChild(box); }
-    var id = null, done = function(){ try{ if(id !== null) ts.remove(id); }catch(e){} };
-    var timer = setTimeout(function(){ done(); rej(new Error("turnstile timeout")); }, 120000);
-    id = ts.render(box, { sitekey: SITEKEY, action: "rootline-session", appearance: "interaction-only",
-      callback: function(t){ clearTimeout(timer); setTimeout(done, 0); res(t); },
-      "error-callback": function(){ clearTimeout(timer); done(); rej(new Error("turnstile error")); },
-      "expired-callback": function(){} });
-  }); });
-}
+function needsHuman(){ return !!(apiBase() && SITEKEY && navigator.onLine !== false && !sessionValid()); }
 var sessP = null, sessBackoff = 0;
+/* never renders Turnstile itself: without a valid session it resolves null and answers stay queued until the player
+   does the human check (humanCheck), which is always shown as an in-game card */
 function ensureSession(){
   if(sessionValid()) return Promise.resolve(sess.token);
-  var base = apiBase();
-  if(!base || !SITEKEY || navigator.onLine === false || Date.now() < sessBackoff) return Promise.resolve(null);
-  if(sessP) return sessP;
-  sessP = turnstileToken().then(function(t){
-    var dev = ""; try{ dev = localStorage.getItem(DEV_KEY) || ""; }catch(e){}
-    return fetch(base + "/v1/session", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({turnstile: t, device: dev})});
-  }).then(function(res){
-    if(res.status === 429){ var ra = parseInt(res.headers.get("Retry-After"), 10); sessBackoff = Date.now() + (ra > 0 ? Math.min(ra, 3600) : 60) * 1000; throw new Error("429"); }
-    if(!res.ok) throw new Error("session " + res.status);
+  return Promise.resolve(null);
+}
+function startSession(base, t){
+  var dev = ""; try{ dev = localStorage.getItem(DEV_KEY) || ""; }catch(e){}
+  return fetch(base + "/v1/session", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({turnstile: t, device: dev})})
+  .then(function(res){
+    if(res.status === 429){ var ra = parseInt(res.headers.get("Retry-After"), 10); sessBackoff = Date.now() + (ra > 0 ? Math.min(ra, 3600) : 60) * 1000; throw new Error("busy"); }
+    if(!res.ok) throw new Error(res.status === 403 ? "rejected" : "server");
     return res.json();
   }).then(function(j){
     sess = {token: j.session, exp: j.expires_at, api: base};
     try{ sessionStorage.setItem(SESS_KEY, JSON.stringify(sess)); localStorage.setItem(DEV_KEY, j.device); }catch(e){}
-    if(bs.device !== j.device_id){ bs.device = j.device_id; bs.stats = {yn:0,yc:0,nn:0,nc:0}; bs.counted = {}; }
-    bs.deal = (j.deal || []).map(function(d){ return {kind:"shared_root", check:true, dealt:true, key:d.key, items:d.items}; });
-    bs.gate = j.gate || bs.gate; bs.dealDay = utcDay(); save();
-    sessP = null; return sess.token;
-  }).catch(function(){ sessP = null; if(!sessBackoff || Date.now() > sessBackoff) sessBackoff = Date.now() + 20e3; return null; });
-  return sessP;
+    if(bs.device !== j.device_id){ bs.device = j.device_id; bs.stats = {yn:0,yc:0,nn:0,nc:0}; bs.cdays = {}; bs.counted = {}; }
+    /* the deal, in the bank's order: the game serves dealt checks in exactly this order */
+    bs.deal = (j.deal || []).map(function(d, i){ return {kind:"shared_root", check:true, dealt:true, pos:i, key:d.key, items:d.items}; });
+    bs.gate = j.gate || bs.gate; bs.trust = j.trust || {ok:false}; bs.dealDay = utcDay(); save();
+    return sess.token;
+  });
+}
+/* ---------- the quick human check: an in-game card with the Turnstile widget in it ---------- */
+var humanP = null;
+function humanCheck(){
+  if(sessionValid()) return Promise.resolve(sess.token);
+  if(humanP) return humanP;
+  var base = apiBase();
+  if(!base || !SITEKEY) return Promise.resolve(null);
+  humanP = new Promise(function(resolve){
+    var esc = U().esc, wid = null, ts = null, settled = false;
+    var ov = document.createElement("div"); ov.id = "wb-human"; ov.className = "wb-human"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
+    ov.innerHTML = '<div class="card wb-human-card"><div class="wb-tag">🛡️ Quick human check</div>'+
+      '<h3 style="margin:6px 0 4px">Quick human check so your answers count</h3>'+
+      '<p class="muted small" style="margin:0 0 10px">Once per visit, Cloudflare checks that a person is playing. It\'s usually automatic; if a box appears, tick it. Nothing about you is stored.</p>'+
+      '<div id="wb-ts" class="wb-ts-box"></div><p class="small wb-human-status" aria-live="polite"></p>'+
+      '<div class="row wb-human-actions"></div></div>';
+    document.body.appendChild(ov);
+    var status = ov.querySelector(".wb-human-status"), actions = ov.querySelector(".wb-human-actions");
+    function state(kind, msg){
+      ov.setAttribute("data-state", kind);
+      status.innerHTML = msg;
+      actions.innerHTML = kind === "failed"
+        ? '<button class="btn primary" data-hc="retry">Try again</button><button class="btn" data-hc="skip">Play without it</button>'
+        : kind === "done" ? "" : '<button class="btn wb-small" data-hc="skip">Play without it for now</button>';
+    }
+    function finish(tok){
+      if(settled) return; settled = true;
+      try{ if(ts && wid !== null) ts.remove(wid); }catch(e){}
+      if(tok){ state("done", "✓ Verified. Your answers count."); setTimeout(function(){ ov.remove(); }, 700); }
+      else ov.remove();
+      humanP = null; resolve(tok || null);
+      if(tok) flush();
+    }
+    function fail(msg){ try{ if(ts && wid !== null) ts.remove(wid); }catch(e){} wid = null; state("failed", msg); }
+    function run(){
+      if(navigator.onLine === false){ fail("You're offline. Play on: your answers are saved here and count after the check, once you're online."); return; }
+      if(Date.now() < sessBackoff){ fail("The word bank is busy. Try again in a minute, or play on: answers are saved and count after the check."); return; }
+      state("pending", '<span class="wb-spin"></span> Checking this browser…');
+      loadTurnstile().then(function(T){
+        ts = T;
+        var box = ov.querySelector("#wb-ts"); box.innerHTML = "";
+        wid = T.render(box, { sitekey: SITEKEY, action: "rootline-session", appearance: "interaction-only", "refresh-expired": "auto",
+          "before-interactive-callback": function(){ state("interactive", "Tick the box above to continue."); },
+          "after-interactive-callback": function(){ state("pending", '<span class="wb-spin"></span> Checking…'); },
+          callback: function(t){
+            state("pending", '<span class="wb-spin"></span> Verified by Cloudflare. Connecting to the word bank…');
+            startSession(base, t).then(finish).catch(function(e){
+              fail(e.message === "rejected" ? "The word bank didn't accept this check. Try again."
+                 : e.message === "busy" ? "The word bank is busy right now. Try again in a minute."
+                 : "Couldn't reach the word bank. Try again, or play on: answers are saved and count later.");
+            });
+          },
+          "error-callback": function(){ fail("The check didn't go through. Try again; if it keeps failing, play on and your answers count later."); return true; },
+          "unsupported-callback": function(){ fail("This browser can't run the check. Play on: your answers are saved on this device."); },
+          "timeout-callback": function(){ fail("The check timed out. Try again."); },
+          "expired-callback": function(){} });
+      }).catch(function(){ fail("Couldn't load the check (offline or blocked by an extension). Play on: answers are saved and count after the check."); });
+    }
+    ov.addEventListener("click", function(e){
+      var b = e.target.closest("[data-hc]"); if(!b) return;
+      if(b.getAttribute("data-hc") === "retry") run(); else finish(null);
+    });
+    run();
+  });
+  return humanP;
 }
 
 /* ---------- event queue ---------- */
@@ -163,11 +223,12 @@ var waiters = {};
 function applyChecks(list){
   (list || []).forEach(function(c){
     var meta = bs.evKey[c.id]; delete bs.evKey[c.id];
-    bs.checks[c.id] = c; bs.checked++; if(c.correct === true) bs.checkedRight++;
+    bs.checks[c.id] = c; if(!c.withheld){ bs.checked++; if(c.correct === true) bs.checkedRight++; }
     if(c.gloss) for(var gk in c.gloss) GL2[gk] = c.gloss[gk];
-    if(c.dealt && meta && !bs.counted[meta.key] && (c.correct === true || c.correct === false)){
-      bs.counted[meta.key] = 1;   /* first answer per check round only, like the server */
+    if(meta && c.dealt) bs.counted[meta.key] = 1;   /* answered (scored now or before): never served again */
+    if(c.scored && meta){   /* the bank scores only the first answer to each dealt check; "not sure" is a miss */
       if(c.answer === "yes"){ bs.stats.yn++; if(c.correct) bs.stats.yc++; } else { bs.stats.nn++; if(c.correct) bs.stats.nc++; }
+      bs.cdays = bs.cdays || {}; bs.cdays[utcDay()] = 1;
     }
     if(waiters[c.id]){ waiters[c.id](c); delete waiters[c.id]; }
   });
@@ -196,7 +257,7 @@ function flush(keepalive){
           });
         }
         if(res.status === 400 || res.status === 413){ bs.queue = bs.queue.filter(function(e){ return !ids[e.id]; }); save(); }
-        else if(res.status === 401){ sess = null; try{ sessionStorage.removeItem(SESS_KEY); }catch(e){} }   /* expired: next flush gets a new session */
+        else if(res.status === 401){ sess = null; try{ sessionStorage.removeItem(SESS_KEY); }catch(e){} }   /* expired: the next sprint asks for a new human check */
         else if(res.status === 429){ var ra = parseInt(res.headers.get("Retry-After"), 10); backoff = Date.now() + (ra > 0 ? Math.min(ra, 86400) : 600) * 1000; }
         else backoff = Date.now() + 60e3;
         flushing = false; return false;
@@ -215,7 +276,7 @@ function waitCheck(id, ms){
 window.addEventListener("online", function(){ backoff = 0; sessBackoff = 0; flush(); });
 document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "hidden") flush(true); });
 setInterval(function(){ if(bs.queue.length) flush(); }, 30000);
-setTimeout(function(){ if(bs.queue.length || !bs.device) { if(bs.queue.length) flush(); else ensureSession(); } }, 1500);
+setTimeout(function(){ if(bs.queue.length) flush(); }, 1500);   /* uploads only with a session; never a background widget */
 
 /* ---------- round picking ---------- */
 function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
@@ -227,7 +288,8 @@ function pickFrom(list, n, pred){
 }
 function buildSprint(){
   var S = SEED, open = S.open, warm = !gateState().ok;
-  var dealt = shuffle((bs.deal || []).filter(function(r){ return !bs.counted[r.key] && !bs.seen[r.key]; }));
+  /* dealt checks strictly in the bank's order (it only scores answers given in order: no skipping ahead) */
+  var dealt = (bs.deal || []).filter(function(r){ return !bs.counted[r.key] && !bs.seen[r.key]; });
   /* warming up: mostly check rounds (from this device's deal) so votes start counting soon; after that, mostly open rounds */
   var nCheck = warm ? 7 : 3, checks = dealt.slice(0, nCheck);
   if(checks.length < nCheck) checks = checks.concat(pickFrom(S.seed, nCheck - checks.length));   /* practice checks: revealed, never count */
@@ -239,6 +301,9 @@ function buildSprint(){
   );
   cards = shuffle(cards);
   for(var i=0;i<cards.length;i++){ if(cards[i].check){ var c=cards.splice(i,1)[0]; cards.unshift(c); break; } }   /* teach the format first */
+  /* shuffled slots, but the dealt checks keep their dealt order */
+  var slots = [], inOrder = cards.filter(function(r, j){ if(r.dealt){ slots.push(j); return true; } return false; }).sort(function(x, y){ return x.pos - y.pos; });
+  slots.forEach(function(j, k){ cards[j] = inOrder[k]; });
   return cards.slice(0, SPRINT);
 }
 
@@ -265,11 +330,15 @@ function explain(c, r){
 }
 function checkFeedback(c, r, a, xp){
   if(c === undefined) return '<div class="feedback wb-checking"><b>Checking…</b></div>';
-  if(c === null || c.withheld) return navigator.onLine === false
-    ? '<div class="feedback"><b>Saved: checked when online.</b><br><span class="small">The answer and its source appear once you\'re connected; the check counts then.</span></div>'
-    : '<div class="feedback"><b>Saved: checking shortly.</b><br><span class="small">The bank is busy; this check uploads with your next answers and still counts.</span></div>';
+  if(c && c.already_answered) return '<div class="feedback"><b>You answered this check before.</b><br><span class="small">Only your first answer to a check counts.</span></div>';
+  if(c === null || c.withheld){
+    if(navigator.onLine === false) return '<div class="feedback"><b>Saved: checked when online.</b><br><span class="small">The answer and its source appear once you\'re connected; the check counts then.</span></div>';
+    if(!sessionValid() && SITEKEY && apiBase()) return '<div class="feedback"><b>Saved: checked after the quick human check.</b><br><span class="small">Your answer is kept on this device'+(r && r.dealt ? ' and counts once you\'ve done the check.' : '; the bank checks it once you\'ve done the check.')+'</span>'+
+      '<div style="margin-top:8px"><button class="btn wb-small" data-act="wb-verify">🛡️ Do the human check</button></div></div>';
+    return '<div class="feedback"><b>Saved: checking shortly.</b><br><span class="small">The bank is busy; this check uploads with your next answers and still counts.</span></div>';
+  }
   var ans = c.answer === "yes";
-  if(a === "unsure") return '<div class="feedback"><b>The answer: '+(ans?"same root":"not related")+'.</b><br>'+explain(c, r)+srcLinks(c)+'</div>';
+  if(a === "unsure") return '<div class="feedback"><b>The answer: '+(ans?"same root":"not related")+'.</b><br><span class="small">“Not sure” counts as a miss on check rounds.</span><br>'+explain(c, r)+srcLinks(c)+'</div>';
   if(c.correct) return '<div class="feedback good"><b>Right! +'+xp+' XP</b><br>'+explain(c, r)+srcLinks(c)+'</div>';
   return '<div class="feedback bad"><b>Not quite: '+(ans?"they do share a root":"they only look alike")+'.</b><br>'+explain(c, r)+srcLinks(c)+'</div>';
 }
@@ -278,8 +347,9 @@ function start(){
   var app = document.getElementById("app");
   app.innerHTML = U().topbar("Word Bank") + '<div class="card"><p class="muted" style="margin:0">Loading rounds…</p></div>';
   if(bs.dealDay !== utcDay()) sess = null;   /* the bank deals fresh check rounds every UTC day */
-  ensureSession();   /* refreshes this device's deal of check rounds when online; never blocks play */
-  loadSeed().then(function(){
+  /* the human check comes first (once per visit) so the sprint can use this device's deal; skipping it still plays */
+  var gate = needsHuman() ? humanCheck() : Promise.resolve(null);
+  Promise.all([loadSeed(), gate]).then(function(){
     B = {cards: buildSprint(), i: 0, xp: 0, right: 0, verified: 0, combo: 0, answered: null, t0: 0, hint: false, startRounds: bs.rounds};
     renderCard();
   }).catch(function(){
@@ -293,7 +363,7 @@ function renderCard(){
   var h = U().topbar("Word Bank", right) + progressBar() + '<div class="card wb-card">';
   var done = B.answered !== null;
   if(r.kind==="shared_root" || r.kind==="not_related"){
-    h += '<div class="wb-tag">'+(r.check?"✔︎ Check round: Wiktionary knows the answer":"🌱 Open round: no one knows yet")+'</div>';
+    h += '<div class="wb-tag">'+(r.check?"✔︎ Check round: Wiktionary knows the answer"+(r.dealt?' <span class="dim">· “Not sure” counts as a miss</span>':""):"🌱 Open round: no one knows yet")+'</div>';
     h += '<p class="q" style="margin-top:4px">Do these two words share a root?</p><div class="wb-pair">'+wordTile(r.items[0], B.hint||done)+'<span class="wb-amp">&</span>'+wordTile(r.items[1], B.hint||done)+'</div>';
     if(!done){
       h += '<div class="wb-ans"><button class="btn wb-yes" data-act="wb-ans" data-a="yes">🌳 Same root</button><button class="btn wb-no" data-act="wb-ans" data-a="no">✂️ Not related</button></div>';
@@ -332,7 +402,9 @@ function answer(a){
   var r = B.cards[B.i], ms = performance.now() - B.t0, xp;
   if(r.check){
     var ev = record(r, a, {ms: ms, hint: B.hint}), id = ev.id, hint = B.hint;
-    B.answered = a; B.check = undefined; B.lastXp = 0; renderCard();
+    B.answered = a; B.check = undefined; B.lastXp = 0; B.evId = id;
+    if(!sessionValid() && navigator.onLine !== false){ B.check = null; B.lastXp = 1; B.xp += 1; bs.xp += 1; save(); renderCard(); return; }   /* no session: saved, scored after the check */
+    renderCard();
     waitCheck(id, 6000).then(function(c){
       if(!B || B.cards[B.i] !== r) return;
       B.check = c;
@@ -357,7 +429,8 @@ function next(){
 function renderDone(){
   var n = bs.rounds - B.startRounds;
   var h = U().topbar("Word Bank") + '<div class="wordcard"><div class="tag">Sprint complete</div><div class="w" style="font-size:clamp(40px,10vw,64px)">+'+B.xp+' XP</div>'+
-    '<div class="d">'+B.right+' of '+B.verified+' check rounds right</div></div><div class="sep"></div>';
+    '<div class="d">'+(B.verified ? B.right+' of '+B.verified+' check rounds right'
+      : (navigator.onLine === false ? 'Check rounds are scored when you\'re online' : sessionValid() ? 'Check rounds: scoring…' : 'Check rounds are scored after the quick human check'))+'</div></div><div class="sep"></div>';
   h += helpedNote(n) + '<div class="sep"></div><div class="row"><button class="btn primary" data-act="wb-start">Another sprint →</button><button class="btn" data-act="home">Home</button></div>';
   document.getElementById("app").innerHTML = h; window.scrollTo(0,0);
   var refresh = function(){ var el = document.querySelector(".wb-note"); if(el && screenIs()) el.outerHTML = helpedNote(n); };
@@ -404,9 +477,19 @@ document.addEventListener("click", function(e){
   else if(a==="wb-ans") answer(el.getAttribute("data-a"));
   else if(a==="wb-hint"){ if(B && B.answered===null){ B.hint = true; var t=B.t0; renderCard(); B.t0=t; } }
   else if(a==="wb-next"){ if(!el.disabled) next(); }
+  else if(a==="wb-verify"){
+    humanCheck().then(function(tok){
+      if(!tok || !B || B.answered === null || !B.evId || B.check) return;
+      var r = B.cards[B.i], id = B.evId; B.check = undefined; renderCard();
+      waitCheck(id, 8000).then(function(c){ if(!B || B.cards[B.i] !== r) return; B.check = c;
+        if(c && (c.correct === true || c.correct === false)){ B.verified++; if(c.correct){ B.right++; } }
+        renderCard(); });
+    });
+  }
 });
 
-window.RootlineBank = { start: start, homeCard: homeCard, helperCard: helperCard, flush: flush, apiBase: apiBase, ensureSession: ensureSession,
+window.RootlineBank = { start: start, homeCard: homeCard, helperCard: helperCard, flush: flush, apiBase: apiBase, ensureSession: ensureSession, humanCheck: humanCheck,
+  gateLine: function(){ return gateLine(); },
   state: function(){ return bs; }, sprint: function(){ return B; }, confidence: confidence, gate: gateState,
   _test: { wordTile: wordTile, loadSeed: loadSeed, allowedApi: allowedApi, pairKey: pairKey } };
 })();
