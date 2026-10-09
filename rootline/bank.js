@@ -2,7 +2,9 @@
    Similarize reads. Events queue in localStorage and upload in batches, so play works offline.
    Two kinds of "same root?" cards:
    * PRACTICE rounds (public seed set, shipped without answers): the bank replies with the answer + explanation. Fun + teaching.
-   * Everything else is "your call": open rounds AND the bank's quiet check rounds look and behave exactly the same
+   * Everything else is "your call", and it all comes from this device's DEAL (POST /v1/session): open rounds AND the
+     bank's quiet check rounds, one shape, one order, never in the bundle (bank-seed.json has practice rounds and the
+     bridge / meaning rounds built from them, nothing else). They look and behave exactly the same
      (same tag, no meanings, same "vote saved" reply, same XP). The bank never says which were checks or how they went;
      its only feedback is the device's status ("warming up" / "your votes count"), tallied every few hours.
    Uploads need a short-lived session from POST /v1/session, which costs one Cloudflare Turnstile check per visit,
@@ -10,7 +12,7 @@
    Vanilla JS, no dependencies. */
 (function(){
 "use strict";
-var GAME_VERSION = "rootline-helpful-4";
+var GAME_VERSION = "rootline-helpful-5";
 var CFG = window.ROOTLINE_BANK_CONFIG || {};                         /* see bank-config.js (prod switch lives there) */
 var DEFAULT_API = CFG.api || "https://rootline-bank-staging.ben-e22.workers.dev";
 var HOSTS = CFG.hosts || ["rootline-bank-staging.ben-e22.workers.dev", "rootline-bank.ben-e22.workers.dev"];
@@ -281,18 +283,20 @@ function pickFrom(list, n, pred){
   return shuffle(fresh.slice(0, 400)).slice(0, n);
 }
 function buildSprint(){
-  var S = SEED, open = S.open, warm = !gateState().ok;
-  /* this device's deal (open rounds + the bank's quiet checks, indistinguishable) strictly in the bank's order */
+  /* the bundle carries only public practice rounds (+ bridge / meaning rounds built from them). Every "same root?" round
+     that isn't practice comes from this device's deal (open rounds + the bank's quiet checks, indistinguishable),
+     strictly in the bank's order. */
+  var S = SEED, more = S.open || [];
+  var nPractice = 2, nBridge = 1, nSim = 1;
   var dealt = (bs.deal || []).filter(function(r){ return !bs.seen[r.key]; });
-  var d = dealt.slice(0, warm ? 6 : 4), inSprint = {};
-  d.forEach(function(r){ inSprint[r.key] = 1; });
-  var nPractice = 2, nBridge = 1, nSim = warm ? 1 : 2;
+  var d = dealt.slice(0, SPRINT - nPractice - nBridge - nSim);
   var cards = [].concat(d,
     pickFrom(S.seed, nPractice),   /* practice: the bank shows the answer + explanation */
-    pickFrom(open, nBridge, function(r){ return r.kind==="bridge_wording" && r.options && r.options.length; }),
-    pickFrom(open, nSim, function(r){ return r.kind==="similarity_vote"; })
+    pickFrom(more, nBridge, function(r){ return r.kind==="bridge_wording" && r.options && r.options.length; }),
+    pickFrom(more, nSim, function(r){ return r.kind==="similarity_vote"; })
   );
-  cards = cards.concat(pickFrom(open, Math.max(0, SPRINT - cards.length), function(r){ return r.kind==="shared_root" && !inSprint[pairKey(r.items)] && !bs.seen[pairKey(r.items)]; }));
+  /* deal used up (or offline before the first session): more practice */
+  cards = cards.concat(pickFrom(S.seed, Math.max(0, SPRINT - cards.length), function(r){ return !cards.some(function(c){ return c.key === r.key; }); }));
   cards = shuffle(cards);
   for(var i=0;i<cards.length;i++){ if(cards[i].practice){ var c=cards.splice(i,1)[0]; cards.unshift(c); break; } }   /* teach the format first */
   /* shuffled slots, but the dealt rounds keep their dealt order */
@@ -487,6 +491,6 @@ document.addEventListener("click", function(e){
 
 window.RootlineBank = { start: start, homeCard: homeCard, helperCard: helperCard, flush: flush, apiBase: apiBase, ensureSession: ensureSession, humanCheck: humanCheck,
   gateLine: function(){ return gateLine(); },
-  state: function(){ return bs; }, sprint: function(){ return B; }, confidence: confidence, gate: gateState,
+  state: function(){ return bs; }, sprint: function(){ return B; }, seed: function(){ return SEED; }, confidence: confidence, gate: gateState,
   _test: { wordTile: wordTile, loadSeed: loadSeed, allowedApi: allowedApi, pairKey: pairKey } };
 })();
