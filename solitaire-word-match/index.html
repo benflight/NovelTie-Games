@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
 <link rel="manifest" href="assets/manifest.json?v=2" />
     <link rel="apple-touch-icon" href="assets/icon-180.png" />
-    <meta name="swm-build" content="20261008-play4" />
+    <meta name="swm-build" content="20261009-stories1" />
     <title>Solitaire Word Match</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -408,6 +408,21 @@
         position:absolute; top:10px; right:10px; width:34px; height:34px; border:none; border-radius:50%;
         background:#efe3cb; color:var(--ink); font-size:17px; font-weight:700; display:grid; place-items:center;
       }
+      #wordStory{
+        position:fixed; left:50%; bottom:calc(92px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(30px); z-index:240;
+        width:min(92vw,420px); background:#fffaf0; color:var(--ink); border:2px solid #d9c49a; border-radius:16px;
+        padding:12px 40px 12px 14px; box-shadow:0 10px 26px rgba(0,0,0,.35); opacity:0; pointer-events:none;
+        transition:opacity .25s ease, transform .25s ease; text-align:left; cursor:pointer;
+      }
+      #wordStory.show{ opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+      #wordStory .wsHead{ font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#9a6a41; margin-bottom:3px; }
+      #wordStory .wsWord, .winStory .wsWord{ font-size:18px; font-weight:800; margin-bottom:4px; }
+      #wordStory .wsText, .winStory .wsText{ font-size:14.5px; line-height:1.42; margin:0; }
+      #wordStory .wsMyth, .winStory .wsMyth{ display:inline-block; font-size:11px; font-weight:700; background:#f3d9c9; color:#8a3b1f; border-radius:6px; padding:1px 6px; margin-left:6px; vertical-align:middle; }
+      #wordStory .wsSrc, .winStory .wsSrc{ display:block; font-size:11.5px; color:#6d6556; margin-top:6px; }
+      #wordStory .wsX{ position:absolute; top:8px; right:10px; font-size:16px; font-weight:700; color:#8a7d66; }
+      .winStory{ background:#fffaf0; border:1.5px solid #e2d2ad; border-radius:12px; padding:10px 12px; margin:6px 0 12px; text-align:left; font-size:14px; line-height:1.42; }
+      .winStory b.h{ display:block; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#9a6a41; }
       #toast{
         position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(20px); z-index:250;
         background:rgba(20,24,20,.92); color:#fff; font-size:14.5px; font-weight:500;
@@ -472,6 +487,7 @@
       </section>
 
       <div id="toast" role="status"></div>
+      <div id="wordStory" role="status" aria-live="polite" title="Tap to close"></div>
 
       <!-- ======= INTRO ======= -->
       <div class="overlay" id="introOverlay" hidden>
@@ -493,6 +509,7 @@
           <h2>Level Complete!</h2>
           <div class="winStars" id="winStars"></div>
           <p class="rewardLine" id="winReward"></p>
+          <div class="winStory" id="winStory" hidden></div>
           <div class="rowBtns">
             <button class="bigBtn" id="nextBtn">Next Level</button>
             <button class="bigBtn alt" id="replayBtn">Play Again</button>
@@ -1495,7 +1512,8 @@
       sound: true,
       level: 1,           // last level played
       persisted: null,    // navigator.storage.persist() result
-      created: Date.now()
+      created: Date.now(),
+      seenStories: []     // word stories already shown (lowercase words)
     };
 
     /* ================= saved progress ================= */
@@ -1507,7 +1525,7 @@
     const BACKUP_PREFIX = "SWM1.";
     let saveBlocked = false, savedCurrent = null, saveWarned = false, lastWritten = null;
     function defaultSave(){
-      return { v:1, coins:120, boost:{ hint:3, undo:6, shuffle:2 }, sound:true, stars:{}, best:{}, level:1, current:null, persisted:null, created:Date.now(), updated:0 };
+      return { v:1, coins:120, boost:{ hint:3, undo:6, shuffle:2 }, sound:true, stars:{}, best:{}, level:1, current:null, persisted:null, created:Date.now(), updated:0, seenStories:[] };
     }
     function validCurrent(c){
       try{
@@ -1535,6 +1553,7 @@
       if(validCurrent(o.current)) d.current = o.current;
       if(typeof o.persisted === "boolean") d.persisted = o.persisted;
       d.created = num(o.created, d.created); d.updated = num(o.updated, 0);
+      if(Array.isArray(o.seenStories)) d.seenStories = o.seenStories.filter(w => typeof w === "string" && w.length < 40).slice(-400);
       return d;
     }
     function readSave(){
@@ -1573,11 +1592,12 @@
     function buildSave(withHistory){
       return { v:1, coins:S.coins, boost:S.boost, sound:S.sound, stars:S.stars, best:S.best, level:S.level,
                highest: highestUnlocked(), completed: completedLevels(), current: currentSnapshot(withHistory),
-               persisted:S.persisted, created:S.created, updated:Date.now() };
+               persisted:S.persisted, created:S.created, updated:Date.now(), seenStories:S.seenStories.slice(-400) };
     }
     // completions are never lost: anything another tab/the installed app
     // saved (best stars per level) is merged in before writing
     function mergeProgress(d){
+      (d.seenStories || []).forEach(w => { if(S.seenStories.indexOf(w) < 0) S.seenStories.push(w); });
       Object.keys(d.stars).forEach(k => {
         if((d.stars[k] || 0) > (S.stars[k] || 0)) S.stars[k] = d.stars[k];
         const ob = d.best[k], mb = S.best[k];
@@ -1601,7 +1621,7 @@
     }
     function applySave(d){
       S.coins = d.coins; S.boost = d.boost; S.sound = d.sound; S.stars = d.stars; S.best = d.best;
-      S.level = d.level; S.persisted = d.persisted; S.created = d.created;
+      S.level = d.level; S.persisted = d.persisted; S.created = d.created; S.seenStories = (d.seenStories || []).slice();
       savedCurrent = d.current;
     }
     function requestPersist(){
@@ -1953,6 +1973,51 @@
                  : '<span class="cnt buy">' + svgIcon("coin", 2.2) + PRICES[d.key] + '</span>');
       });
     }
+
+    /* ================= word stories ================= */
+    // Short, sourced word-origin stories (Etymonline / Wiktionary), shown only
+    // after a pile is complete, so a story never hints at an unsolved category.
+    const WORD_STORIES = {"berserk": ["A berserkr was a Norse warrior who fought in a wild frenzy. The name probably means \"bear shirt\", for the bearskins they were said to wear.", "https://en.wiktionary.org/w/index.php?title=berserk&oldid=92243978", "attested"], "avocado": ["Avocado comes from the Aztec word āhuacatl. Spanish speakers reshaped it into aguacate and then avocado, which sounded like a familiar Spanish word.", "https://en.wiktionary.org/w/index.php?title=avocado&oldid=93060150", "attested"], "denim": ["Denim is short for French de Nîmes, \"from Nîmes\". The town in southern France was famous for the sturdy fabric.", "https://en.wiktionary.org/w/index.php?title=denim&oldid=93001677", "attested"], "sandwich": ["The sandwich is named after the Earl of Sandwich, its supposed inventor.", "https://en.wiktionary.org/w/index.php?title=sandwich&oldid=93420862", "attested"], "boycott": ["In 1880, Irish tenants and neighbors refused to deal with Charles Boycott, a land agent who evicted farmers. His name became the word for that kind of protest.", "https://en.wiktionary.org/w/index.php?title=boycott&oldid=93381453", "attested"], "window": ["Window comes from Old Norse vindauga, \"wind eye\". Early windows were just unglazed holes in the wall that let the wind in.", "https://en.wiktionary.org/w/index.php?title=window&oldid=92749573", "attested"], "shampoo": ["Shampoo comes from Hindi chāmpo, \"press, knead!\". It first meant a head massage, before it meant the soap.", "https://en.wiktionary.org/w/index.php?title=shampoo&oldid=93429710", "attested"], "king": ["King goes back to Old English cyning, linked to \"kin\", the family or clan. A king was the head of the kin.", "https://en.wiktionary.org/w/index.php?title=king&oldid=93425914", "attested"], "queen": ["Queen comes from Old English cwēn, from a very old word that simply meant \"woman\" or \"wife\".", "https://en.wiktionary.org/w/index.php?title=queen&oldid=92964373", "attested"], "prince": ["Prince comes from Latin princeps, \"the one who takes first place\", from primus, \"first\", and capere, \"to take\".", "https://en.wiktionary.org/w/index.php?title=prince&oldid=93457358", "attested"], "knight": ["A knight was first just a boy or a servant: Old English cniht. Only later did it mean an armored warrior.", "https://en.wiktionary.org/w/index.php?title=knight&oldid=92699419", "attested"], "castle": ["Castle comes from Latin castellum, \"little fort\", a smaller version of castrum, an army camp.", "https://en.wiktionary.org/w/index.php?title=castle&oldid=93428555", "attested"], "ocean": ["Ocean comes from Okeanos, a Greek water god. The Romans took the name as Oceanus, and it reached English through French.", "https://en.wiktionary.org/w/index.php?title=ocean&oldid=93138520", "attested"], "coral": ["Coral comes from Greek korallion and probably first from a Semitic word for a small pebble. An old folk story tied it to Medusa instead.", "https://en.wiktionary.org/w/index.php?title=coral&oldid=93067855", "attested"], "cloud": ["In Old English a clūd was a lump of rock or a hill. People started using it for the lumpy masses in the sky.", "https://en.wiktionary.org/w/index.php?title=cloud&oldid=92925386", "attested"], "storm": ["Storm goes back to an old root meaning \"to stir up\". It's a cousin of the word stir.", "https://en.wiktionary.org/w/index.php?title=storm&oldid=93460826", "attested"], "star": ["Star goes back to the ancient root *h₂stḗr, which also gave Latin stella and Greek astron. Disaster and asteroid come from the same star.", "https://en.wiktionary.org/w/index.php?title=star&oldid=93108969", "attested"], "garden": ["A garden was first an enclosure, a fenced-in space. It shares an old root with yard, and guard comes from a cousin word.", "https://en.wiktionary.org/w/index.php?title=garden&oldid=93377138", "attested"], "tulip": ["Tulip comes from Turkish tülbent, \"turban\". The flower looked like a turban.", "https://en.wiktionary.org/w/index.php?title=tulip&oldid=93351955", "attested"], "daisy": ["Daisy comes from Old English dæges ēage, \"day's eye\". The flower opens at dawn and closes at night.", "https://en.wiktionary.org/w/index.php?title=daisy&oldid=93296450", "attested"], "fern": ["Fern goes back to an old root meaning \"feather\". Look at a fern frond and you'll see why.", "https://en.wiktionary.org/w/index.php?title=fern&oldid=93384322", "attested"], "chef": ["Chef is French for \"chief\" or \"head\", short for chef de cuisine, \"head of the kitchen\". It comes from Latin caput, \"head\", like captain.", "https://en.wiktionary.org/w/index.php?title=chef&oldid=93064778", "attested"], "barn": ["Barn comes from Old English bere-ærn, \"barley house\". It was a storehouse for grain.", "https://en.wiktionary.org/w/index.php?title=barn&oldid=93453618", "attested"], "rocket": ["Rocket comes from Italian rocchetta, \"little bobbin\". The early rockets were shaped like the spindle used to spin thread.", "https://en.wiktionary.org/w/index.php?title=rocket&oldid=91915314", "attested"], "moon": ["Moon goes back to a very old root linked to measuring. People measured time by the moon, which is why moon and month are related.", "https://en.wiktionary.org/w/index.php?title=moon&oldid=92769039", "attested"], "comet": ["Comet comes from Greek komētēs, \"long-haired\". The Greeks saw the comet's tail as a star with flowing hair.", "https://en.wiktionary.org/w/index.php?title=comet&oldid=92685638", "attested"], "planet": ["Planet comes from Greek planētēs, \"wanderer\". Planets roam across the sky while the \"fixed\" stars stay put.", "https://en.wiktionary.org/w/index.php?title=planet&oldid=92977224", "attested"], "orbit": ["Orbit comes from Latin orbita, \"track\" or \"wheel rut\". A planet's orbit is the track it keeps following.", "https://en.wiktionary.org/w/index.php?title=orbit&oldid=93380069", "attested"], "sled": ["Sled comes from Middle Dutch sledde and is related to slide, which is exactly what a sled does.", "https://en.wiktionary.org/w/index.php?title=sled&oldid=92679236", "attested"], "peach": ["Peach comes from Latin persicum, \"Persian apple\". Romans thought the fruit came from Persia.", "https://en.wiktionary.org/w/index.php?title=peach&oldid=92983604", "attested"], "pie": ["Pie's origin is uncertain. One idea links it to the magpie, a bird famous for collecting odds and ends, just as a pie holds a jumble of fillings.", "https://en.wiktionary.org/w/index.php?title=pie&oldid=93409257", "attested"], "hammer": ["Hammer goes back to a Germanic word for a tool with a stone head. Some link it to an ancient word for \"stone\".", "https://en.wiktionary.org/w/index.php?title=hammer&oldid=93295874", "attested"], "wrench": ["Wrench comes from an old root meaning \"to turn\", which is exactly what you do with one.", "https://en.wiktionary.org/w/index.php?title=wrench&oldid=93360239", "attested"], "amber": ["Amber first meant ambergris, a waxy stuff from whales, from Arabic anbar. The name later moved to the golden fossil tree resin.", "https://en.wiktionary.org/w/index.php?title=amber&oldid=93386986", "attested"], "map": ["Map comes from Medieval Latin mappa mundi, \"cloth of the world\". Mappa meant napkin or cloth, since maps were drawn on cloth.", "https://en.wiktionary.org/w/index.php?title=map&oldid=93472375", "attested"], "compass": ["Compass comes from Latin com, \"together\", and passus, \"step\". It first meant a circle or circuit, then the tool for drawing circles, then the one for finding north.", "https://en.wiktionary.org/w/index.php?title=compass&oldid=92459927", "attested"], "ticket": ["Ticket comes from Old French estiquet, a note stuck on something, from estiquier, \"to stick\". Etiquette comes from the same word.", "https://en.wiktionary.org/w/index.php?title=ticket&oldid=93033511", "attested"], "etiquette": ["Etiquette is French for a label or ticket. In the French court, a list of rules for how to behave was the etiquette, and the meaning stuck.", "https://en.wiktionary.org/w/index.php?title=etiquette&oldid=92959140", "attested"], "train": ["Train comes from Old French train, \"something dragged along\", from Latin trahere, \"to pull\". A train is something that pulls cars behind it.", "https://en.wiktionary.org/w/index.php?title=train&oldid=93389806", "attested"], "passport": ["Passport is French passeport, \"pass the port\". It was a permit to go through a harbor or gate.", "https://en.wiktionary.org/w/index.php?title=passport&oldid=93432435", "attested"], "cookie": ["Cookie comes from Dutch koekje, \"little cake\". Dutch settlers brought the word to America.", "https://en.wiktionary.org/w/index.php?title=cookie&oldid=93144036", "attested"], "nest": ["Nest comes from an ancient compound meaning \"sit down\": ni, \"down\", and sed, \"sit\". A nest is where the bird sits down.", "https://en.wiktionary.org/w/index.php?title=nest&oldid=93464457", "attested"], "owl": ["Owl probably comes from an imitation of the bird's own hooting cry.", "https://en.wiktionary.org/w/index.php?title=owl&oldid=92923458", "attested"], "robin": ["Robin is short for robin redbreast. The bird was given a person's nickname: Robin, a pet form of Robert.", "https://en.wiktionary.org/w/index.php?title=robin&oldid=93460137", "attested"], "elephant": ["Elephant comes from Greek elephas, which meant both the animal and ivory. It may come from an Egyptian or Berber word.", "https://en.wiktionary.org/w/index.php?title=elephant&oldid=92768218", "attested"], "giraffe": ["Giraffe comes from Arabic zarāfa, possibly from Persian for \"flute-leg\", a fun description of those long, slim legs.", "https://en.wiktionary.org/w/index.php?title=giraffe&oldid=93410171", "attested"], "zebra": ["Zebra comes from an old Portuguese word for a wild donkey, from Latin equiferus, \"wild horse\".", "https://en.wiktionary.org/w/index.php?title=zebra&oldid=93119962", "attested"], "banana": ["Banana comes through Portuguese or Spanish from a West African language, perhaps Wolof banaana.", "https://en.wiktionary.org/w/index.php?title=banana&oldid=93458847", "attested"], "strawberry": ["Nobody knows for sure why it's a strawberry. Ideas include the straw-like runners the plant sends out, or berries strung on straws to sell.", "https://en.wiktionary.org/w/index.php?title=strawberry&oldid=93429834", "attested"], "pineapple": ["Pineapple first meant a pinecone. When Europeans saw the tropical fruit, they named it after the pinecone it looked like.", "https://en.wiktionary.org/w/index.php?title=pineapple&oldid=92982298", "attested"], "car": ["Car comes from Latin carrus, a two-wheeled wagon, a word the Romans borrowed from the Gauls.", "https://en.wiktionary.org/w/index.php?title=car&oldid=93368073", "attested"], "bus": ["Bus is short for omnibus, Latin for \"for all\". So the word bus is really just a Latin grammar ending.", "https://www.etymonline.com/word/bus", "attested"], "tractor": ["Tractor comes from Latin trahere, \"to pull\", plus -or, \"one who does\". A tractor is \"a puller\".", "https://en.wiktionary.org/w/index.php?title=tractor&oldid=93461380", "attested"], "million": ["Million comes from Italian milione, \"a big thousand\", from mille, \"thousand\".", "https://en.wiktionary.org/w/index.php?title=million&oldid=93385835", "attested"], "alpha": ["Alpha, the first Greek letter, comes from the Phoenician letter aleph, which meant \"ox\".", "https://en.wiktionary.org/w/index.php?title=alpha&oldid=93443238", "attested"], "delta": ["The Greek letter delta came from a Phoenician word for \"door\". A river delta is named after the triangle shape of a capital delta (Δ).", "https://en.wiktionary.org/w/index.php?title=delta&oldid=93015035", "attested"], "diamond": ["Diamond comes from Greek adamas, \"unconquerable\". Nothing could scratch or break it.", "https://en.wiktionary.org/w/index.php?title=diamond&oldid=93296491", "attested"], "hedgehog": ["Hedgehog is simply hedge plus hog: the little animal of the hedgerows with a piglike snout.", "https://en.wiktionary.org/w/index.php?title=hedgehog&oldid=92696770", "attested"], "porcupine": ["Porcupine comes from Old French porc-espin, \"spine pig\", from Latin porcus, \"pig\", and spina, \"thorn\".", "https://en.wiktionary.org/w/index.php?title=porcupine&oldid=93431734", "attested"], "tea": ["Tea comes from Hokkien Chinese tê, carried by Dutch traders. The Dutch got their tea from ports where Hokkien was spoken.", "https://en.wiktionary.org/w/index.php?title=tea&oldid=92957041", "attested"], "tsunami": ["Tsunami is Japanese for \"harbor wave\": tsu, \"harbor\", plus nami, \"wave\".", "https://en.wiktionary.org/w/index.php?title=tsunami&oldid=93033775", "attested"], "tycoon": ["Tycoon comes from Japanese taikun, \"great lord\", a title used for the shogun when dealing with foreigners.", "https://en.wiktionary.org/w/index.php?title=tycoon&oldid=92683068", "attested"], "algebra": ["Algebra comes from Arabic al-jabr, \"the reunion of broken parts\", from the title of a famous 9th-century math book by al-Khwarizmi.", "https://en.wiktionary.org/w/index.php?title=algebra&oldid=93419036", "attested"], "pupil": ["The pupil of your eye comes from Latin pupilla, \"little doll\". When you look into someone's eye, you see a tiny reflection of yourself.", "https://en.wiktionary.org/w/index.php?title=pupil&oldid=93126515", "attested"], "silhouette": ["Silhouette comes from Étienne de Silhouette, a famously penny-pinching French finance minister. Cheap black outline portraits may have been named after him.", "https://en.wiktionary.org/w/index.php?title=silhouette&oldid=92970897", "attested"], "nicotine": ["Nicotine is named after Jean Nicot, a French ambassador who sent tobacco seeds to France in 1561.", "https://en.wiktionary.org/w/index.php?title=nicotine&oldid=92360025", "attested"], "guillotine": ["The guillotine is named after Joseph-Ignace Guillotin, a doctor who proposed it as a more humane way of execution. He didn't invent it.", "https://en.wiktionary.org/w/index.php?title=guillotine&oldid=92133889", "attested"], "diesel": ["The diesel engine is named after Rudolf Diesel, who developed it in Germany in the 1890s.", "https://en.wiktionary.org/w/index.php?title=diesel&oldid=93367995", "attested"], "saxophone": ["The saxophone is named after its inventor, Adolphe Sax, plus phone, \"sound\".", "https://en.wiktionary.org/w/index.php?title=saxophone&oldid=92884233", "attested"], "checkmate": ["Checkmate comes from Persian shāh māt, \"the king is helpless\". Chess came to Europe from Persia through the Arab world.", "https://en.wiktionary.org/w/index.php?title=checkmate&oldid=93429217", "attested"], "cardigan": ["The cardigan is named after the 7th Earl of Cardigan, a British military commander of the 1800s.", "https://en.wiktionary.org/w/index.php?title=cardigan&oldid=93454294", "attested"]};
+    let storyTimer = null, pendingStory = null;
+    function famWords(fam){
+      const out = [];
+      Object.keys(REG).forEach(id => { const r = REG[id]; if(r.fam !== fam) return; const w = (r.kind === "half" ? r.whole : r.word); if(w && out.indexOf(w) < 0) out.push(w); });
+      return out;
+    }
+    function pickStory(fams){
+      const words = []; fams.forEach(f => famWords(f).forEach(w => words.push(w)));
+      const has = words.filter(w => WORD_STORIES[w.toLowerCase()]);
+      if(!has.length) return null;
+      const fresh = has.filter(w => S.seenStories.indexOf(w.toLowerCase()) < 0);
+      if(!fresh.length) return null;   // every story here was seen already: no repeats
+      const w = fresh[Math.floor(Math.random() * fresh.length)];
+      return { word:w, s:WORD_STORIES[w.toLowerCase()] };
+    }
+    function markSeen(st){ const k = st.word.toLowerCase(); if(S.seenStories.indexOf(k) < 0) S.seenStories.push(k); }
+    function storyHTML(st, cls){
+      let host = ""; try{ host = new URL(st.s[1]).hostname.replace(/^www\./, "").replace(/^en\./, ""); }catch(e){}
+      return '<div class="wsWord">' + esc(st.word) + (st.s[2] === "folk" ? '<span class="wsMyth">myth busted</span>' : "") + '</div>' +
+             '<p class="wsText">' + esc(st.s[0]) + '</p><span class="wsSrc">Source: ' + esc(host) + '</span>';
+    }
+    function esc(t){ return String(t).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" })[c]); }
+    function hideStory(){ const el = $("#wordStory"); el.classList.remove("show"); clearTimeout(storyTimer); }
+    function showStoryCard(fams){
+      const st = pickStory(fams); if(!st) return;
+      markSeen(st); saveNow();
+      const el = $("#wordStory");
+      el.innerHTML = '<div class="wsHead">📖 Word story</div>' + storyHTML(st) + '<span class="wsX" aria-hidden="true">✕</span>';
+      el.classList.add("show");
+      clearTimeout(storyTimer); storyTimer = setTimeout(hideStory, 10000);
+    }
+    function winStory(){
+      const box = $("#winStory"); box.hidden = true;
+      if(!G) return;
+      const st = pickStory(Object.keys(FAMTOTAL));
+      if(!st) return;
+      markSeen(st); saveNow();
+      box.innerHTML = '<b class="h">📖 Word story</b>' + storyHTML(st);
+      box.hidden = false;
+    }
     let toastTimer = null;
     function toast(msg, ms){
       const t = $("#toast");
@@ -2010,6 +2075,7 @@
       startLevel(nextLevel());
     }
     function startLevel(n){
+      hideStory();
       // same level still in progress: go back to that board instead of a new deal
       if(inProgressLevel() === n){ continueGame(); return; }
       S.level = n;
@@ -2059,7 +2125,9 @@
       if(mv.kind === "unlock") gain += 5;
       if(mv.kind === "merge") gain += 5;
       const afterFams = Object.keys(FAMTOTAL).filter(f => (st.banked[f]||[]).length >= FAMTOTAL[f]);
-      afterFams.forEach(f => { if(beforeFams.indexOf(f) < 0){ gain += 10; setTimeout(() => toast("Pile complete! +10 coins"), 60); } });
+      const newFams = afterFams.filter(f => beforeFams.indexOf(f) < 0);
+      newFams.forEach(f => { gain += 10; setTimeout(() => toast("Pile complete! +10 coins"), 60); });
+      if(newFams.length && !isWin(st)) setTimeout(() => { if(G && !G.over) showStoryCard(newFams); }, 2500);
       if(gain > 0) S.coins += gain;
       // feedback
       if(mv.kind === "bank" || mv.kind === "bankPile"){
@@ -2105,6 +2173,7 @@
       $("#winReward").innerHTML = 'You earned <span class="coinPill">' + svgIcon("coin", 1.6) + reward + "</span>";
       $("#nextBtn").textContent = (G.cfg.n === CLASSIC_LEVELS || G.cfg.n >= TOTAL_LEVELS) ? "Finish" : "Next Level";
       renderCoins();
+      hideStory(); winStory();
       setTimeout(() => { $("#winOverlay").hidden = false; }, 550);
     }
 
@@ -2472,6 +2541,7 @@
     $("#pauseHowBtn").addEventListener("click", () => { $("#howOverlay").hidden = false; });
     $("#pauseSoundBtn").addEventListener("click", () => { S.sound = !S.sound; updateSoundBtn(); saveNow(); });
     $("#quitBtn").addEventListener("click", () => { hideOverlays(); showScreen("map"); });
+    $("#wordStory").addEventListener("click", hideStory);
     $("#nextBtn").addEventListener("click", () => { hideOverlays(); if(S.level >= TOTAL_LEVELS || S.level === CLASSIC_LEVELS) showScreen("map"); else startLevel(S.level + 1); });
     document.querySelectorAll("#trackTabs button").forEach(b => b.addEventListener("click", () => { MAPTRACK = b.dataset.track; renderMap(); }));
     $("#replayBtn").addEventListener("click", () => { hideOverlays(); loadLevel(S.level); if(G) G.started = true; });
@@ -2568,7 +2638,7 @@
   var btn = document.getElementById('installBtn');
   var deferred = null;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=20261009-hard2', { scope: './' }).catch(function(){});
+    navigator.serviceWorker.register('sw.js?v=20261009-stories1', { scope: './' }).catch(function(){});
   }
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
