@@ -157,7 +157,10 @@ h3{font-family:var(--serif);color:var(--gold2);margin:4px 0 10px;font-weight:600
 .wb-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
 .wb-pair{display:flex;align-items:stretch;gap:10px;margin:6px 0 16px}
 .wb-word{flex:1;min-width:0;background:var(--parch);color:var(--parchInk);border-radius:18px;padding:14px 12px;text-align:center;display:flex;flex-direction:column;gap:4px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
-.wb-word b{font-family:var(--serif);font-size:clamp(24px,7vw,36px);line-height:1.1;overflow-wrap:anywhere}
+.wb-word b{font-family:var(--serif);font-size:clamp(22px,6vw,32px);line-height:1.15;overflow-wrap:break-word;word-break:normal;-webkit-hyphens:manual;hyphens:manual}
+.wb-word b.long{font-size:clamp(19px,5vw,26px)}
+.wb-word b.xlong{font-size:clamp(16px,4.2vw,22px)}
+@media (max-width:479px){.wb-pair{flex-direction:column;gap:6px}.wb-amp{margin:-2px 0;font-size:22px;line-height:1}.wb-word{padding:10px 12px}}
 .wb-word i{font-size:14px;opacity:.75}
 .wb-lang{font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
 .wb-amp{align-self:center;font-family:var(--serif);font-size:26px;color:var(--gold2)}

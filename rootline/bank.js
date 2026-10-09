@@ -4,22 +4,42 @@
 (function(){
 "use strict";
 var GAME_VERSION = "rootline-helpful-1";
-var DEFAULT_API = "https://rootline-bank-staging.ben-e22.workers.dev";
-var KEY = "rootline.bank.v1", API_KEY = "rootline.bank.api";
+var CFG = window.ROOTLINE_BANK_CONFIG || {};                         /* see bank-config.js (prod switch lives there) */
+var DEFAULT_API = CFG.api || "https://rootline-bank-staging.ben-e22.workers.dev";
+var HOSTS = CFG.hosts || ["rootline-bank-staging.ben-e22.workers.dev", "rootline-bank.ben-e22.workers.dev", "localhost", "127.0.0.1"];
+var KEY = "rootline.bank.v1", API_KEY = "rootline.bank.api", OFF_KEY = "rootline.bank.off";
 var SPRINT = 10, BATCH = 50, QUEUE_MAX = 2000;
 var LN = {en:"English", es:"Spanish", fr:"French", de:"German", la:"Latin", grc:"Ancient Greek",
   "gem-pro":"Proto-Germanic", "gmw-pro":"Proto-West-Germanic", "ine-pro":"Proto-Indo-European", "itc-pro":"Proto-Italic", fro:"Old French", "la-vul":"Vulgar Latin", "grk-pro":"Proto-Hellenic"};
 var FLAG = {en:"🇬🇧", es:"🇪🇸", fr:"🇫🇷", de:"🇩🇪", la:"🏛️", grc:"🏺"};
 
-/* ---------- config: ?bank=<url|off> > localStorage > window.ROOTLINE_BANK_API > staging ---------- */
-function apiBase(){
+/* ---------- API base: ?bank=<allowlisted url> (persists) | off (this tab only) | reset  >  saved override  >  config ---------- */
+function allowedApi(v){
+  try{
+    var u = new URL(v); if(u.username || u.password || u.search || u.hash) return null;
+    if(HOSTS.indexOf(u.hostname) < 0) return null;
+    var local = u.hostname === "localhost" || u.hostname === "127.0.0.1";
+    if(u.protocol !== "https:" && !(local && u.protocol === "http:")) return null;
+    return (u.origin + u.pathname).replace(/\/+$/,"");
+  }catch(e){ return null; }
+}
+(function readOverride(){
   try{
     var q = new URLSearchParams(location.search).get("bank");
-    if(q){ if(q==="reset") localStorage.removeItem(API_KEY); else localStorage.setItem(API_KEY, q); }
-    var v = localStorage.getItem(API_KEY);
-    if(v) return v==="off" ? null : v.replace(/\/+$/,"");
+    if(q === "reset"){ localStorage.removeItem(API_KEY); sessionStorage.removeItem(OFF_KEY); }
+    else if(q === "off") sessionStorage.setItem(OFF_KEY, "1");
+    else if(q){ var ok = allowedApi(q); if(ok){ localStorage.setItem(API_KEY, ok); sessionStorage.removeItem(OFF_KEY); } else console.warn("Rootline: ignoring ?bank= (host not allowlisted)"); }
+    var saved = localStorage.getItem(API_KEY);
+    if(saved && !allowedApi(saved)) localStorage.removeItem(API_KEY);   /* clean up overrides saved by older builds */
   }catch(e){}
-  return (window.ROOTLINE_BANK_API || DEFAULT_API).replace(/\/+$/,"");
+})();
+function apiBase(){
+  try{
+    if(sessionStorage.getItem(OFF_KEY)) return null;
+    var v = localStorage.getItem(API_KEY);
+    if(v && allowedApi(v)) return allowedApi(v);
+  }catch(e){}
+  return allowedApi(DEFAULT_API) || DEFAULT_API.replace(/\/+$/,"");
 }
 
 /* ---------- state (separate key: never touches rootline.v1 saves) ---------- */
@@ -83,7 +103,8 @@ function flush(keepalive){
         return res.json().catch(function(){return {};}).then(function(){ flushing = false; if(bs.queue.length) return flush(keepalive); return true; });
       }
       if(res.status === 400 || res.status === 413){ bs.queue = bs.queue.filter(function(e){ return !ids[e.id]; }); save(); }
-      else backoff = Date.now() + (res.status === 429 ? 10*60e3 : 60e3);
+      else if(res.status === 429){ var ra = parseInt(res.headers.get("Retry-After"), 10); backoff = Date.now() + (ra > 0 ? Math.min(ra, 86400) : 600) * 1000; }
+      else backoff = Date.now() + 60e3;
       flushing = false; return false;
     }).catch(function(){ flushing = false; backoff = Date.now() + 30e3; return false; });
 }
@@ -106,7 +127,7 @@ function buildSprint(){
     pickFrom(yes, 4), pickFrom(no, 2),
     pickFrom(open, 1, function(r){ return r.kind==="shared_root"; }),
     pickFrom(open, 2, function(r){ return r.kind==="similarity_vote"; }),
-    pickFrom(open, 1, function(r){ return r.kind==="bridge_wording" && r.hint_options && r.hint_options.length; })
+    pickFrom(open, 1, function(r){ return r.kind==="bridge_wording" && r.options && r.options.length; })
   );
   cards = shuffle(cards);
   /* open with a verified card so the first tap teaches the format */
@@ -120,7 +141,7 @@ var B = null;   /* current sprint */
 function gloss(it){ return (SEED && SEED.gloss[it.lang+":"+it.text]) || ""; }
 function wordTile(it, showGloss){
   var g = gloss(it);
-  return '<div class="wb-word"><span class="wb-lang">'+(FLAG[it.lang]||"")+' '+U().esc(LN[it.lang]||it.lang)+'</span><b class="sc">'+U().esc(it.text)+'</b>'+
+  return '<div class="wb-word"><span class="wb-lang">'+(FLAG[it.lang]||"")+' '+U().esc(LN[it.lang]||it.lang)+'</span><b class="sc'+(it.text.length>20?' xlong':it.text.length>14?' long':'')+'" lang="'+U().esc(it.lang)+'">'+U().esc(it.text)+'</b>'+
     (showGloss && g ? '<i>“'+U().esc(g)+'”</i>' : '')+'</div>';
 }
 function srcLinks(r){
@@ -167,10 +188,7 @@ function renderCard(){
       h += '<div class="wb-scale">'+[["3","Same"],["2","Close"],["1","Loosely"],["0","Different"]].map(function(x){ return '<button class="btn" data-act="wb-ans" data-a="'+x[0]+'">'+x[1]+'</button>'; }).join("")+'</div>';
     } else h += feedback(r);
   } else if(r.kind==="bridge_wording"){
-    if(!B.opts){
-      var others = shuffle(SEED.open.filter(function(o){ return o.kind==="bridge_wording" && o!==r && o.hint_options && o.hint_options.length; })).slice(0,2).map(function(o){ return o.hint_options[0]; });
-      B.opts = shuffle(r.hint_options.slice(0,2).concat(others).filter(function(v,i,a){ return a.indexOf(v)===i; })).concat(["none of these"]);
-    }
+    if(!B.opts) B.opts = shuffle(r.options || []).concat(["none of these"]);   /* fixed answer set: the bank only accepts these */
     h += '<div class="wb-tag">🌱 Open round: find the bridge</div><p class="q" style="margin-top:4px">These English words are cousins. Which word links their meanings?</p><div class="wb-pair">'+wordTile(r.items[0], true)+'<span class="wb-amp">↔</span>'+wordTile(r.items[1], true)+'</div>';
     if(!done){
       h += '<div class="opts">'+B.opts.map(function(o){ return '<button class="opt" data-act="wb-ans" data-a="'+esc(o==="none of these"?"none":o)+'"><span class="of">'+esc(o)+'</span></button>'; }).join("")+'</div>';
@@ -259,5 +277,6 @@ document.addEventListener("click", function(e){
 });
 
 window.RootlineBank = { start: start, homeCard: homeCard, helperCard: helperCard, flush: flush, apiBase: apiBase,
-  state: function(){ return bs; }, sprint: function(){ return B; }, confidence: confidence };
+  state: function(){ return bs; }, sprint: function(){ return B; }, confidence: confidence,
+  _test: { wordTile: wordTile, loadSeed: loadSeed, allowedApi: allowedApi } };
 })();
