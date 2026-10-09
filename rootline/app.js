@@ -58,6 +58,7 @@ function go(name, arg, noPush){
   else if(name==="gates") renderGates();
   else if(name==="gate") renderGate(arg);
   else if(name==="codex") renderCodex();
+  else if(name==="bank" && window.RootlineBank) window.RootlineBank.start();
   window.scrollTo(0,0);
 }
 window.addEventListener("popstate", function(){ if(document.querySelector(".modal")){ closeModal(); return; } go("home",null,true); });
@@ -94,7 +95,7 @@ function renderHome(){
   h += '</div><div style="display:grid;gap:14px"><div class="card"><h3>Free Play</h3><div class="tracks">';
   for(var t in TRACKS){ var cnt = t==="all"?W.length:W.filter(function(w){return w.track===t;}).length;
     h += '<button class="track" data-act="free" data-track="'+t+'"><b>'+TRACKS[t].name+'</b><span>'+TRACKS[t].desc+' · '+cnt+'</span></button>'; }
-  h += '</div></div><div class="row"><button class="btn" data-act="gates">🔤 Script Gates</button><button class="btn" data-act="codex">📜 Root Codex</button></div></div></div>';
+  h += '</div></div>'+(window.RootlineBank?window.RootlineBank.homeCard():"")+'<div class="row"><button class="btn" data-act="gates">🔤 Script Gates</button><button class="btn" data-act="codex">📜 Root Codex</button></div></div></div>';
   h += '<p class="dim small" style="text-align:center;margin-top:26px">Progress saves on this device. Works offline once loaded.<br><a href="https://arcade.noveltie.com/" style="color:var(--gold)">← NovelTie Arcade</a></p>';
   app.innerHTML = h;
 }
@@ -167,9 +168,10 @@ function renderRound(){
     h += '<p class="muted small" style="text-align:center">Root added to your Codex: <span class="sc" style="color:var(--gold2)">'+esc(w.root.f)+'</span> “'+esc(w.root.g)+'”</p>';
     if(R.daily) h += '<button class="btn primary" data-act="sharedaily">Copy result to share</button><div class="sep"></div><button class="btn" data-act="free" data-track="all">Keep digging (Free Play) →</button>';
     else h += '<button class="btn primary" data-act="free" data-track="'+R.track+'">Next word →</button>';
-    h += '<div class="sep"></div><div class="row"><button class="btn" data-act="codex">📜 Codex</button><button class="btn" data-act="home">Home</button></div></div>';
+    h += '<div class="sep"></div><div class="row"><button class="btn" data-act="codex">📜 Codex</button><button class="btn" data-act="home">Home</button></div></div><div id="wb-helper"></div>';
   }
   app.innerHTML = h;
+  if(R.stage==="done" && window.RootlineBank) window.RootlineBank.helperCard(w);
 }
 function strataHTML(){
   var w=R.word, n=w.L.length, h='<div class="stratum surface"><span class="l">English</span><span class="f">'+esc(w.w)+'</span><span class="g">'+esc(w.def)+'</span></div>';
@@ -372,7 +374,8 @@ document.addEventListener("click", function(e){
 });
 
 /* expose for tests */
-window.ROOTLINE = {state:function(){return st;}, round:function(){return R;}, dailyWord:dailyWord, denverDate:denverDate};
+window.ROOTLINE = {state:function(){return st;}, round:function(){return R;}, dailyWord:dailyWord, denverDate:denverDate,
+  ui:{esc:esc, toast:toast, modal:modal, closeModal:closeModal, topbar:topbar, buzz:buzz, dust:dust, go:go}};
 renderHome();
 if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
 })();
