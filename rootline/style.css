@@ -151,3 +151,39 @@ h3{font-family:var(--serif);color:var(--gold2);margin:4px 0 10px;font-weight:600
 /* Large in-car / desktop touchscreens: scale everything up */
 @media (min-width:1400px){body{zoom:1.3}}
 @media (min-width:2200px){body{zoom:1.6}}
+/* Word Bank (helpful game) */
+.wb-prog{height:12px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;margin:-4px 0 14px}
+.wb-prog>div{height:100%;background:linear-gradient(90deg,var(--ok),#a6e3a1);border-radius:999px;transition:width .35s}
+.wb-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.wb-pair{display:flex;align-items:stretch;gap:10px;margin:6px 0 16px}
+.wb-word{flex:1;min-width:0;background:var(--parch);color:var(--parchInk);border-radius:18px;padding:14px 12px;text-align:center;display:flex;flex-direction:column;gap:4px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.wb-word b{font-family:var(--serif);font-size:clamp(22px,6vw,32px);line-height:1.15;overflow-wrap:break-word;word-break:normal;-webkit-hyphens:manual;hyphens:manual}
+.wb-word b.long{font-size:clamp(19px,5vw,26px)}
+.wb-word b.xlong{font-size:clamp(16px,4.2vw,22px)}
+@media (max-width:479px){.wb-pair{flex-direction:column;gap:6px}.wb-amp{margin:-2px 0;font-size:22px;line-height:1}.wb-word{padding:10px 12px}}
+.wb-word i{font-size:14px;opacity:.75}
+.wb-lang{font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
+.wb-amp{align-self:center;font-family:var(--serif);font-size:26px;color:var(--gold2)}
+.wb-ans{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wb-yes{border-color:rgba(111,191,115,.6)}.wb-no{border-color:rgba(224,116,95,.6)}
+.wb-small{min-height:46px;font-size:15px;font-weight:500}
+.wb-scale{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.wb-scale .btn{padding:10px 4px;font-size:16px}
+.wb-src{margin-top:8px;font-size:13px}.wb-src a{color:var(--gold2)}
+.wb-note{background:rgba(111,191,115,.1);border:1px solid rgba(111,191,115,.4);border-radius:16px;padding:12px 14px;font-size:15px}
+.wb-note a{color:var(--gold2)}
+.wb-helper{margin-top:14px}
+@media (min-width:900px){.wb-card,.wb-prog,.wb-note{max-width:760px;margin-left:auto;margin-right:auto}.wb-prog{margin-bottom:14px}}
+.wb-human{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,10,14,.72);backdrop-filter:blur(2px)}
+.wb-human-card{width:100%;max-width:440px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.wb-ts-box{display:flex;justify-content:center;min-height:0;margin:4px 0}
+.wb-ts-box:not(:empty){min-height:68px}
+.wb-human-status{margin:8px 0 10px;min-height:1.3em}
+.wb-human[data-state=failed] .wb-human-status{color:var(--bad,#e88)}
+.wb-human[data-state=done] .wb-human-status{color:var(--good,#8d8)}
+.wb-human-actions:empty{display:none}
+.wb-spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:wbspin .8s linear infinite;vertical-align:-1px;margin-right:4px}
+@keyframes wbspin{to{transform:rotate(360deg)}}
+.wb-checking{opacity:.8}
+.wb-gate{color:var(--gold2)}
+.btn[disabled]{opacity:.5;cursor:default}
