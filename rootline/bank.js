@@ -328,7 +328,17 @@ function explain(c, r){
 }
 function verifyBtn(){ return '<div style="margin-top:8px"><button class="btn wb-small" data-act="wb-verify">🛡️ Do the human check</button></div>'; }
 /* practice rounds only: the bank's answer + explanation + source */
+/* practice rounds only: a word-origin story for an English word in the pair, once the answer is out */
+function practiceStory(r){
+  if(!r || !r.practice || !window.wordStoryHTML) return "";
+  for(var i=0;i<r.items.length;i++){ if(r.items[i].lang === "en"){ var h = window.wordStoryHTML(r.items[i].text); if(h) return h; } }
+  return "";
+}
 function checkFeedback(c, r, a, xp){
+  var fb = checkFeedback0(c, r, a, xp);
+  return (c && r && r.practice) ? fb + practiceStory(r) : fb;
+}
+function checkFeedback0(c, r, a, xp){
   if(c === undefined) return '<div class="feedback wb-checking"><b>Checking…</b></div>';
   if(!c){
     if(navigator.onLine === false) return '<div class="feedback"><b>Saved: answer shown when online.</b><br><span class="small">The answer and its source appear once you\'re connected.</span></div>';
@@ -492,5 +502,5 @@ document.addEventListener("click", function(e){
 window.RootlineBank = { start: start, homeCard: homeCard, helperCard: helperCard, flush: flush, apiBase: apiBase, ensureSession: ensureSession, humanCheck: humanCheck,
   gateLine: function(){ return gateLine(); },
   state: function(){ return bs; }, sprint: function(){ return B; }, seed: function(){ return SEED; }, confidence: confidence, gate: gateState,
-  _test: { wordTile: wordTile, loadSeed: loadSeed, allowedApi: allowedApi, pairKey: pairKey } };
+  _test: { wordTile: wordTile, loadSeed: loadSeed, allowedApi: allowedApi, pairKey: pairKey, checkFeedback: checkFeedback } };
 })();

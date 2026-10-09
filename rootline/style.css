@@ -187,3 +187,11 @@ h3{font-family:var(--serif);color:var(--gold2);margin:4px 0 10px;font-weight:600
 .wb-checking{opacity:.8}
 .wb-gate{color:var(--gold2)}
 .btn[disabled]{opacity:.5;cursor:default}
+
+/* word stories */
+.wstory{margin:12px 0;border-color:#6b5631;background:linear-gradient(180deg,rgba(217,178,95,.10),rgba(217,178,95,.03))}
+.wstory-lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.wstory-w{font-size:22px;font-weight:700;margin:2px 0 4px}
+.wstory-myth{font-size:11px;font-weight:700;background:#5a2a1c;color:#f6c9b5;border-radius:6px;padding:1px 6px;vertical-align:middle}
+.wstory-t{margin:0;line-height:1.45;overflow-wrap:break-word}
+.wstory-src{display:inline-block;margin-top:6px;font-size:12px;color:var(--gold)}

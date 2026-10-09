@@ -90,6 +90,7 @@ function renderHome(){
          '<button class="btn primary" data-act="daily">⛏ Start the Daily Dig</button>';
   }
   h += '</div>';
+  if(window.storyOfTheDay) h += window.wordStoryHTML(window.storyOfTheDay(today), "Word story of the day");
   h += '<div class="stats"><div class="stat"><b>'+nPlayed+'/'+W.length+'</b><span>Words</span></div><div class="stat"><b>'+nRoots+'</b><span>Roots</span></div>'+
        '<div class="stat"><b>'+nGates+'/3</b><span>Gates</span></div><div class="stat"><b>'+streak+'</b><span>Streak</span></div></div>';
   h += '</div><div style="display:grid;gap:14px"><div class="card"><h3>Free Play</h3><div class="tracks">';
@@ -164,6 +165,7 @@ function renderRound(){
   } else if(R.stage==="done"){
     var hits=R.results.filter(Boolean).length;
     h += '<div class="wordcard"><div class="tag">'+(hits===n?"Perfect dig!":"Dig complete")+'</div><div class="w" style="font-size:clamp(36px,9vw,60px)">'+esc(w.w)+'</div><div class="d">← '+w.L.map(function(l){return esc(l.f);}).join(" ← ")+'</div></div><div class="sep"></div>';
+    if(window.wordStoryHTML) h += window.wordStoryHTML(w.w) ;
     h += '<div class="card"><p class="score">'+R.score+'</p><p class="muted" style="text-align:center;margin:0">points'+(hits===n?" (incl. +10 perfect-dig bonus)":"")+'</p><div class="trail">'+esc(R.trail)+'</div>';
     h += '<p class="muted small" style="text-align:center">Root added to your Codex: <span class="sc" style="color:var(--gold2)">'+esc(w.root.f)+'</span> “'+esc(w.root.g)+'”</p>';
     if(R.daily) h += '<button class="btn primary" data-act="sharedaily">Copy result to share</button><div class="sep"></div><button class="btn" data-act="free" data-track="all">Keep digging (Free Play) →</button>';
