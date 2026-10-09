@@ -302,8 +302,10 @@
       .card.picCard{ display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
       .card .pic{ position:relative; z-index:2; margin-top:calc(var(--cw)*.05); font-size:calc(var(--cw)*.46); line-height:1;
         font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; filter:drop-shadow(0 2px 2px rgba(0,0,0,.18)); }
+      .halfPart{ position:relative; z-index:4; display:flex; flex-direction:column; align-items:center; gap:1px; }
+      .halfPic{ font-style:normal; font-size:calc(var(--cw)*.3); line-height:1; font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
       .halfWord{
-        position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:4;
+        position:relative; z-index:4;
         background:linear-gradient(180deg,#fffefa,#fff3d6); border:1.5px dashed #b9a67f; color:var(--ink);
         box-shadow:0 2px 5px rgba(0,0,0,.16), inset 0 1px 0 #fff;
         font-size:calc(var(--cw)*.15); font-weight:600; padding:1px 7px; border-radius:999px; white-space:nowrap;
@@ -612,20 +614,20 @@
       { id:"day",     label:"One Day",     crown:"Dawn",     seq:true,  hue:"#dd7f2e", icon:"sunrise", members:["Morning","Noon","Dusk","Night"] },
       { id:"plant",   label:"Growing",     crown:"Seed",     seq:true,  hue:"#4d9b4d", icon:"sprout",  members:["Sprout","Bloom","Tree"] },
       { id:"royalty", label:"Royalty",     crown:"King",     seq:false, hue:"#b03a48", icon:"crown",   members:["Queen","Prince","Knight","Castle"] },
-      { id:"ocean",   label:"Ocean",       crown:"Ocean",    seq:false, hue:"#2f6fb2", icon:"wave",    members:["Wave","Shell","Coral","Pearl"] },
+      { id:"ocean",   label:"Ocean",       crown:"Ocean",    seq:false, hue:"#2f6fb2", icon:"wave",    members:["Wave","Shell","Coral","Pearl","Starfish"] },
       { id:"sky",     label:"Sky",         crown:"Sun",      seq:false, hue:"#4a90c2", icon:"sun",     members:["Cloud","Rainbow","Storm","Star"] },
-      { id:"garden",  label:"Garden",      crown:"Garden",   seq:false, hue:"#c65b7c", icon:"flower",  members:["Rose","Tulip","Daisy","Fern"] },
-      { id:"kitchen", label:"Kitchen",     crown:"Chef",     seq:false, hue:"#9a6a41", icon:"fork",    members:["Knife","Fork","Spoon","Pan"] },
+      { id:"garden",  label:"Garden",      crown:"Garden",   seq:false, hue:"#c65b7c", icon:"flower",  members:["Rose","Tulip","Daisy","Fern","Sunflower"] },
+      { id:"kitchen", label:"Kitchen",     crown:"Chef",     seq:false, hue:"#9a6a41", icon:"fork",    members:["Knife","Fork","Spoon","Pan","Teapot"] },
       { id:"music",   label:"Music",       crown:"Song",     seq:false, hue:"#7456a0", icon:"note",    members:["Drum","Flute","Harp","Bell"] },
-      { id:"farm",    label:"Farm",        crown:"Barn",     seq:false, hue:"#a8542f", icon:"barn",    members:["Cow","Pig","Hen","Horse"] },
-      { id:"space",   label:"Space",       crown:"Rocket",   seq:false, hue:"#3f5f9e", icon:"crescent",members:["Moon","Comet","Planet","Orbit"] },
-      { id:"winter",  label:"Winter",      crown:"Winter",   seq:false, hue:"#5f9ec4", icon:"snow",    members:["Snow","Ice","Sled","Scarf"] },
+      { id:"farm",    label:"Farm",        crown:"Barn",     seq:false, hue:"#a8542f", icon:"barn",    members:["Cow","Pig","Hen","Horse","Scarecrow"] },
+      { id:"space",   label:"Space",       crown:"Rocket",   seq:false, hue:"#3f5f9e", icon:"crescent",members:["Moon","Comet","Planet","Orbit","Spaceship"] },
+      { id:"winter",  label:"Winter",      crown:"Winter",   seq:false, hue:"#5f9ec4", icon:"snow",    members:["Frost","Ice","Sled","Scarf","Snowman"] },
       { id:"orchard", label:"Orchard",     crown:"Orchard",  seq:false, hue:"#c0453e", icon:"apple",   members:["Apple","Pear","Peach","Plum"] },
       { id:"tools",   label:"Toolbox",     crown:"Toolbox",  seq:false, hue:"#5f7184", icon:"hammer",  members:["Hammer","Wrench","Nail","Saw"] },
       { id:"colors",  label:"Colors",      crown:"Rainbow",  seq:false, hue:"#d96f4e", icon:"rainbow", members:["Red","Amber","Green","Violet"] },
-      { id:"travel",  label:"Journey",     crown:"Journey",  seq:false, hue:"#7a8b3d", icon:"compass", members:["Map","Compass","Ticket","Train"] },
-      { id:"bakery",  label:"Bakery",      crown:"Bakery",   seq:false, hue:"#b5654d", icon:"cake",    members:["Cake","Cookie","Pie","Tart"] },
-      { id:"birds",   label:"Birds",       crown:"Nest",     seq:false, hue:"#6f9e7a", icon:"egg",     members:["Owl","Robin","Heron","Finch"] }
+      { id:"travel",  label:"Journey",     crown:"Journey",  seq:false, hue:"#7a8b3d", icon:"compass", members:["Map","Compass","Ticket","Train","Suitcase","Passport"] },
+      { id:"bakery",  label:"Bakery",      crown:"Bakery",   seq:false, hue:"#b5654d", icon:"cake",    members:["Bun","Cookie","Pie","Tart","Cupcake","Pancake"] },
+      { id:"birds",   label:"Birds",       crown:"Nest",     seq:false, hue:"#6f9e7a", icon:"egg",     members:["Owl","Robin","Heron","Finch","Bluebird"] }
     ];
     // picture-only categories: members show just a picture (emoji), no word;
     // the word is kept for screen readers only. excl: word families that
@@ -766,8 +768,78 @@
       { id:"hPainters", crown:"Painters", members:["Vermeer","Rembrandt","Monet","Goya","Klimt","Caravaggio","Titian","Turner","Hopper","Bosch"] },
       { id:"hComposers", crown:"Composers", members:["Bach","Handel","Haydn","Mahler","Liszt","Chopin","Dvořák","Ravel","Elgar","Sibelius"] },
       { id:"hCode", crown:"Programming Languages", members:["Python","Ruby","Java","Rust","Swift","Perl","Haskell","Lisp","Fortran","Cobol"], excl:["hEponym","hIslands"] },
-      { id:"hHorses", crown:"Famous Horses", members:["Bucephalus","Seabiscuit","Secretariat","Trigger","Black Beauty","Shadowfax","Sleipnir","Incitatus","Marengo","Copenhagen"], excl:["hNorseGods","hHorse"] }
+      { id:"hHorses", crown:"Famous Horses", members:["Bucephalus","Seabiscuit","Secretariat","Trigger","Black Beauty","Shadowfax","Sleipnir","Incitatus","Marengo","Copenhagen"], excl:["hNorseGods","hHorse"] },
+
+      // ---------- added Oct 2026 ----------
+      { id:"hNoble", seq:true, chain:["Helium","Neon","Argon","Krypton","Xenon","Radon","Oganesson"] },
+      { id:"hHeroes", crown:"Greek Heroes", members:["Achilles","Odysseus","Heracles","Jason","Theseus","Ajax","Diomedes","Atalanta","Bellerophon","Orpheus"], excl:["hConstell"] },
+      { id:"hPharaohs", crown:"Pharaohs", members:["Khufu","Ramesses","Tutankhamun","Akhenaten","Hatshepsut","Cleopatra","Seti","Thutmose","Djoser","Menkaure"] },
+      { id:"hEmperors", crown:"Roman Emperors", members:["Augustus","Nero","Caligula","Trajan","Hadrian","Claudius","Tiberius","Vespasian","Domitian","Constantine"] },
+      { id:"hMeso", crown:"Mesopotamian Cities", members:["Uruk","Lagash","Nippur","Eridu","Kish","Mari","Akkad","Assur","Sippar","Larsa"], excl:["hRuins","hWonders"] },
+      { id:"hHebrewW", crown:"From Hebrew", members:["Amen","Hallelujah","Cherub","Jubilee","Sabbath","Behemoth","Shibboleth","Leviathan","Seraph","Messiah"] },
+      { id:"hFrench", crown:"From French", members:["Ballet","Bouquet","Chauffeur","Rendezvous","Etiquette","Croissant","Déjà Vu","Entrepreneur","Garage","Souvenir"],
+        excl:["hArabic","hEponym","hFabric","hCheese","hArch","hHeraldry","hDance","hTurkish","hDutch"] },
+      { id:"hYiddish", crown:"From Yiddish", members:["Schlep","Klutz","Chutzpah","Glitch","Kvetch","Bagel","Nosh","Schmooze","Spiel","Maven"] },
+      { id:"hTurkish", crown:"From Turkish", members:["Yogurt","Kiosk","Kebab","Tulip","Baklava","Divan","Horde"], excl:["hArabic"] },
+      { id:"hPhilo", crown:"Philosophers", members:["Socrates","Plato","Aristotle","Kant","Hume","Locke","Hegel","Descartes","Spinoza","Confucius"] },
+      { id:"hEcon", crown:"Economics", members:["Inflation","Arbitrage","Liquidity","Monopoly","Recession","Dividend","Equity","Deficit","Subsidy","Collateral"] },
+      { id:"hLaw", crown:"Legal Terms", members:["Tort","Subpoena","Affidavit","Plaintiff","Verdict","Statute","Precedent","Injunction","Bailiff","Perjury"] },
+      { id:"hBias", crown:"Cognitive Biases", members:["Anchoring","Framing","Halo Effect","Hindsight","Confirmation","Sunk Cost","Recency","Availability","Negativity"], excl:["hFallacy"] },
+      { id:"hMath", crown:"Math Terms", members:["Tangent","Vector","Matrix","Integral","Derivative","Theorem","Axiom","Lemma","Fractal","Asymptote"] },
+      { id:"hPen", crown:"Pen Names", members:["Twain","Orwell","Voltaire","Seuss","Saki","Carroll","Molière","Stendhal","Novalis","Le Carré"] },
+      { id:"hPlaces", crown:"Imaginary Places", members:["Narnia","Gondor","Hogwarts","Atlantis","Utopia","Lilliput","Camelot","Oz","Wakanda","Shangri-La"], excl:["hRound"] },
+      { id:"hSleuths", crown:"Fictional Detectives", members:["Holmes","Poirot","Marple","Columbo","Maigret","Dupin","Morse","Wolfe","Spade","Clouseau"], excl:["hEmperors"] },
+      { id:"hDeserts", crown:"Deserts", members:["Sahara","Gobi","Atacama","Kalahari","Mojave","Namib","Sonoran","Negev","Thar","Taklamakan"] },
+      { id:"hSeas", crown:"Seas", members:["Aegean","Caspian","Adriatic","Baltic","Sargasso","Tasman","Caribbean","Ionian","Bering","Arabian"] },
+      { id:"hCapitals", crown:"Capital Cities", members:["Ulaanbaatar","Thimphu","Ouagadougou","Tbilisi","Vientiane","Asmara","Bishkek","Windhoek","Reykjavik","Canberra"] }
     ];
+    // themes: later Super Hard levels deal two to four families from one theme
+    // together, so the categories look alike and the decoys get sharper
+    const HARD_THEMES = {
+      gods:["hEgypt","hNorseGods","hRomanGods","hMuses","hHeroes","hMyth"],
+      ancient:["hWonders","hRuins","hAmericas","hMoney","hMeasure","hArms","hPharaohs","hEmperors","hMeso","hSchools"],
+      origins:["hArabic","hNahuatl","hIndia","hNorse","hJapan","hDutch","hEponym","hHebrewW","hFrench","hYiddish","hTurkish"],
+      language:["hScripts","hDeadLang","hConlang","hRhetoric","hPoetry","hType","hPen"],
+      thinking:["hFallacy","hBias","hPhilo","hEcon","hLaw","hMath","hSchools"],
+      science:["hElemPlace","hElemSci","hParticles","hCell","hBones","hEye","hClouds","hDinos","hConstell"],
+      earth:["hVolcano","hMountains","hIslands","hRivers","hDeserts","hSeas","hCapitals"],
+      color:["hReds","hBlues","hHeraldry","hGems"],
+      arts:["hOpera","hPainters","hComposers","hBard","hDance","hSleuths","hPlaces"],
+      wordplay:["hHidAnimal","hHidNumber","hPalin","hSilent","hPaper","hMoon","hHorse","hGolden","hCast","hBreak"],
+      things:["hKeys","hTeeth","hSpine","hKnots","hNautical","hShips","hChess"],
+      food:["hPasta","hCheese","hSpice","hYiddish"],
+      creatures:["hYoung","hGroup","hMyth","hHorses"],
+      legend:["hRound","hNephite","hApostles","hPlaces"]
+    };
+    // split cards: a whole word made of two clue halves (with a picture on the
+    // easier levels). The halves must be joined before the word can be banked.
+    const COMBOS = {
+      // classic (picture + word)
+      Rainbow:[["Rain","🌧️"],["Bow","🎀"]], Starfish:[["Star","⭐"],["Fish","🐟"]], Sunflower:[["Sun","☀️"],["Flower","🌼"]],
+      Snowman:[["Snow","❄️"],["Man","👨"]], Cupcake:[["Cup","☕"],["Cake","🍰"]], Pancake:[["Pan","🍳"],["Cake","🍰"]],
+      Teapot:[["Tea","🍵"],["Pot","🪴"]], Suitcase:[["Suit","👔"],["Case","💼"]], Passport:[["Pass","🎫"],["Port","⚓"]],
+      Scarecrow:[["Scare","😱"],["Crow","🐦‍⬛"]], Spaceship:[["Space","🌌"],["Ship","🚢"]], Bluebird:[["Blue","🔵"],["Bird","🐦"]],
+      // super hard: two real words that don't look related until they're joined
+      "Strawman":[["Straw"],["Man"]], "Bandwagon":[["Band"],["Wagon"]], "Red Herring":[["Red"],["Herring"]], "Slippery Slope":[["Slippery"],["Slope"]], "Checkmate":[["Check"],["Mate"]],
+      "Stalemate":[["Stale"],["Mate"]], "Bowline":[["Bow"],["Line"]], "Sheepshank":[["Sheep"],["Shank"]], "Clove Hitch":[["Clove"],["Hitch"]], "Sheet Bend":[["Sheet"],["Bend"]],
+      "Half Hitch":[["Half"],["Hitch"]], "Slipknot":[["Slip"],["Knot"]], "Baseline":[["Base"],["Line"]], "Em Dash":[["Em"],["Dash"]], "Seabiscuit":[["Sea"],["Biscuit"]],
+      "Shadowfax":[["Shadow"],["Fax"]], "Black Beauty":[["Black"],["Beauty"]], "Mayflower":[["May"],["Flower"]], "Typewriter":[["Type"],["Writer"]], "Laptop":[["Lap"],["Top"]],
+      "Accordion":[["Accord"],["Ion"]], "Bear Trap":[["Bear"],["Trap"]], "Chainsaw":[["Chain"],["Saw"]], "Hedgehog":[["Hedge"],["Hog"]], "Lionfish":[["Lion"],["Fish"]],
+      "Crowbar":[["Crow"],["Bar"]], "Cowardice":[["Coward"],["Ice"]], "Ransack":[["Ran"],["Sack"]], "Landscape":[["Land"],["Scape"]], "Coleslaw":[["Cole"],["Slaw"]],
+      "Hogshead":[["Hogs"],["Head"]], "Furlong":[["Fur"],["Long"]], "Claymore":[["Clay"],["More"]], "Lancelot":[["Lance"],["Lot"]], "Oxblood":[["Ox"],["Blood"]],
+      "Ultramarine":[["Ultra"],["Marine"]], "Scarlet":[["Scar"],["Let"]], "Carmine":[["Car"],["Mine"]], "Rampant":[["Ram"],["Pant"]], "Garnet":[["Gar"],["Net"]],
+      "Shylock":[["Shy"],["Lock"]], "Macbeth":[["Mac"],["Beth"]], "Hamlet":[["Ham"],["Let"]], "Seersucker":[["Seer"],["Sucker"]], "Matterhorn":[["Matter"],["Horn"]],
+      "Nutmeg":[["Nut"],["Meg"]], "Star Anise":[["Star"],["Anise"]], "Saltire":[["Salt"],["Ire"]], "Ballot":[["Ball"],["Lot"]], "Parachute":[["Para"],["Chute"]],
+      "Racecar":[["Race"],["Car"]], "Hindsight":[["Hind"],["Sight"]], "Sunk Cost":[["Sunk"],["Cost"]], "Halo Effect":[["Halo"],["Effect"]], "Hogwarts":[["Hog"],["Warts"]],
+      "Camelot":[["Came"],["Lot"]], "Orwell":[["Or"],["Well"]], "Plaintiff":[["Plain"],["Tiff"]], "Tangent":[["Tan"],["Gent"]], "Theorem":[["The"],["Orem"]],
+      "Sonnet":[["Son"],["Net"]], "Limerick":[["Lime"],["Rick"]], "Ballad":[["Ball"],["Ad"]], "Castling":[["Cast"],["Ling"]], "Shrewdness":[["Shrewd"],["Ness"]],
+      "Stilton":[["Stilt"],["On"]], "Carmen":[["Car"],["Men"]], "Chopin":[["Chop"],["In"]], "Fortran":[["Fort"],["Ran"]],
+      "Peridot":[["Peri"],["Dot"]], "Periwinkle":[["Peri"],["Winkle"]], "Unkindness":[["Unkind"],["Ness"]], "Monopoly":[["Mono"],["Poly"]],
+      "Garage":[["Gar"],["Age"]], "Carroll":[["Car"],["Roll"]], "Bering":[["Be"],["Ring"]], "Ad Hominem":[["Ad"],["Hominem"]],
+      "Tu Quoque":[["Tu"],["Quoque"]], "False Dilemma":[["False"],["Dilemma"]], "Santa Maria":[["Santa"],["Maria"]],
+      "En Passant":[["En"],["Passant"]], "Henchman":[["Hench"],["Man"]], "Shangri-La":[["Shangri"],["La"]], "Toki Pona":[["Toki"],["Pona"]],
+      "Linear B":[["Linear"],["B"]], "Gamma ray":[["Gamma"],["Ray"]], "Déjà Vu":[["Déjà"],["Vu"]], "Le Carré":[["Le"],["Carré"]]
+    };
     // pairs that must never share a deal (beyond each family's excl list)
     const HARD_EXCL = [
       ["hKeys","hEponym"],["hNorse","hNorseGods"],["hScripts","hNorse"],["hScripts","hJapan"],["hScripts","hEponym"],
@@ -842,6 +914,25 @@
           }
         };
         take(seqQ, cfg.seqCount);
+        // look-alike families: start from the next family in line, then pull
+        // others from its theme ahead of their turn
+        if(cfg.theme > 1){
+          const before = chosen.length;
+          take(othQ, 1);
+          const lead = chosen[before];
+          const themes = Object.keys(HARD_THEMES).filter(t => HARD_THEMES[t].indexOf(lead) >= 0);
+          const mates = [];
+          themes.forEach(t => HARD_THEMES[t].forEach(id => { if(id !== lead && mates.indexOf(id) < 0) mates.push(id); }));
+          // least recently used first
+          mates.sort((a, b) => othQ.indexOf(a) - othQ.indexOf(b));
+          let want = Math.min(cfg.theme - 1, cfg.famCount - chosen.length);
+          for(const id of mates){
+            if(want <= 0) break;
+            const qi = othQ.indexOf(id);
+            if(qi < 0 || chosen.some(c => C[c + "|" + id])) continue;
+            chosen.push(id); othQ.splice(qi, 1); othQ.push(id); want--;
+          }
+        }
         take(othQ, cfg.famCount - chosen.length);
         HARD_PLAN[n] = chosen.map(id => {
           const f = FAM[id], o = off[id] || 0;
@@ -859,6 +950,19 @@
           off[id] = o + m;
           return { id, crown: f.crown, members: words };
         });
+        // make sure the deal has enough two-part words for its split cards
+        const need = cfg.halves + 1;
+        const count = () => HARD_PLAN[n].reduce((a, p) => a + p.members.filter(w => COMBOS[w]).length, 0);
+        for(let pass = 0; pass < 2 && count() < need; pass++){
+          HARD_PLAN[n].forEach(p => {
+            const f = FAM[p.id];
+            if(f.seq || count() >= need) return;
+            const extra = f.members.find(w => COMBOS[w] && p.members.indexOf(w) < 0);
+            if(!extra) return;
+            const slot = p.members.findIndex(w => !COMBOS[w]);
+            if(slot >= 0) p.members[slot] = extra;
+          });
+        }
       }
       return HARD_PLAN;
     }
@@ -873,7 +977,7 @@
     const lockColor = id => LOCK_COLORS.find(c => c.id === id) || LOCK_COLORS[0];
 
     /* ================= level configuration ================= */
-    const CLASSIC_LEVELS = 30, TOTAL_LEVELS = 60;
+    const CLASSIC_LEVELS = 30, TOTAL_LEVELS = 100;
     function diffOf(n){ return n > CLASSIC_LEVELS ? "Super Hard" : n <= 6 ? "Easy" : n <= 14 ? "Normal" : n <= 22 ? "Hard" : "Expert"; }
     const diffCls = d => "diff-" + d.replace(/\s+/g, "");
     const dispN = n => n > CLASSIC_LEVELS ? n - CLASSIC_LEVELS : n;
@@ -886,16 +990,21 @@
       { name:"Crown Peaks",   from:23, to:30 },
       { name:"The Labyrinth",         from:31, to:40, track:"hard" },
       { name:"Tower of Babel",        from:41, to:50, track:"hard" },
-      { name:"Library of Alexandria", from:51, to:60, track:"hard" }
+      { name:"Library of Alexandria", from:51, to:60, track:"hard" },
+      { name:"Oracle of Delphi",      from:61, to:70, track:"hard" },
+      { name:"Hall of Records",       from:71, to:80, track:"hard" },
+      { name:"The Sphinx's Riddle",   from:81, to:90, track:"hard" },
+      { name:"Rosetta Stone",         from:91, to:100, track:"hard" }
     ];
     function levelCfg(n){
       if(n > CLASSIC_LEVELS){
         const k = n - CLASSIC_LEVELS;
         return { n, hard:true, famCount:5,
-                 membersPer: k <= 10 ? 5 : k <= 20 ? 6 : 7,
+                 membersPer: k <= 8 ? 5 : k <= 20 ? 6 : k <= 45 ? 7 : 8,
                  seqCount:   k <= 2 ? 0 : k <= 22 ? 1 : 2,
-                 locks:      k <= 4 ? 1 : k <= 14 ? 2 : 3,
-                 halves:     k <= 7 ? 1 : 2,
+                 locks:      k <= 4 ? 1 : k <= 14 ? 2 : k <= 40 ? 3 : 4,
+                 halves:     k <= 4 ? 1 : k <= 16 ? 2 : k <= 40 ? 3 : 4,
+                 theme:      k <= 6 ? 1 : k <= 20 ? 2 : k <= 45 ? 3 : 4,
                  pics: 0, diff: diffOf(n) };
       }
       const famCount   = n < 3 ? 2 : n < 7 ? 3 : n < 15 ? 4 : 5;
@@ -1024,6 +1133,7 @@
             return { ok:true, move:{ kind:"stack", src:drag, col:ci } };
           return { ok:false, reason:"Crown cards go in the top slots — or onto a pile of their own family" };
         }
+        if(b.kind === "half" && t.kind === "half") return { ok:false, reason:Q(b) + " and " + Q(t) + " don't make a word together" };
         if(t.kind === "key" || t.kind === "half") return { ok:false, reason:"Can't stack on that card" };
         if(t.kind === "crown") return { ok:false, reason:"Put the " + Q(t) + " card in a top slot before stacking on it" };
         if(b.fam !== t.fam) return { ok:false, reason:Qc(b) + " doesn't match " + Q(t, true) };
@@ -1189,8 +1299,12 @@
       let uid = 0;
       const nid = () => "c" + (uid++);
       for(const fam of fams){
-        const members = fam.seq ? fam.members.slice(0, cfg.membersPer)
-                                : fam.members.slice().sort(() => rng()-.5).slice(0, cfg.membersPer);
+        let members = fam.seq ? fam.members.slice(0, cfg.membersPer)
+                              : fam.members.slice().sort(() => rng()-.5).slice(0, cfg.membersPer);
+        if(cfg.halves && !fam.seq && !fam.pic && !members.some(w => COMBOS[w])){
+          const extra = fam.members.find(w => COMBOS[w]);
+          if(extra) members[members.length - 1] = extra;
+        }
         const cid = nid();
         REG[cid] = { kind:"crown", fam:fam.id, word:fam.crown, rank:0 };
         cards.push(cid);
@@ -1237,6 +1351,31 @@
       return st;
     }
     function addFeatures(st, cfg, rng, nid){
+      // half cards: split member cards sitting in columns; partner half into the stock
+      // only words that really break into two clues; skip any whose halves
+      // would read like another card in this deal
+      const dealWords = new Set(Object.values(REG).filter(r => r.word).map(r => normW(r.word)));
+      const usedParts = new Set();
+      const halfable = [];
+      st.cols.flat().concat(st.stock).forEach(id => {
+        const r = REG[id];
+        if(r.kind !== "member" || st.locked[id] || r.pic || !COMBOS[r.word]) return;
+        const parts = COMBOS[r.word];
+        if(parts.some(p => dealWords.has(normW(p[0])))) return;
+        halfable.push(id);
+      });
+      for(let H=0; H<cfg.halves && halfable.length; H++){
+        const id = halfable.splice(Math.floor(rng()*halfable.length), 1)[0];
+        const whole = REG[id], parts = COMBOS[whole.word];
+        if(parts.some(p => usedParts.has(normW(p[0])))){ H--; continue; }
+        parts.forEach(p => usedParts.add(normW(p[0])));
+        const pair = "p" + H + "_" + id;
+        const showPic = !cfg.hard;
+        REG[id] = { kind:"half", fam:whole.fam, whole:whole.word, wrank:whole.rank, pair, side:"top", word:parts[0][0], ppic: showPic ? parts[0][1] : null };
+        const hid = nid();
+        REG[hid] = { kind:"half", fam:whole.fam, whole:whole.word, wrank:whole.rank, pair, side:"bot", word:parts[1][0], ppic: showPic ? parts[1][1] : null };
+        st.stock.splice(Math.floor(rng()*(st.stock.length+1)), 0, hid);
+      }
       // locks on member cards in columns; a matching key card goes into the stock
       const lockable = [];
       st.cols.forEach(c => c.forEach(id => { if(REG[id].kind === "member") lockable.push(id); }));
@@ -1247,18 +1386,6 @@
         const kid = nid();
         REG[kid] = { kind:"key", color, word:"Key" };
         st.stock.splice(Math.floor(rng()*(st.stock.length+1)), 0, kid);
-      }
-      // half cards: split member cards sitting in columns; partner half into the stock
-      const halfable = [];
-      st.cols.forEach(c => c.forEach(id => { if(REG[id].kind === "member" && !st.locked[id] && !REG[id].pic) halfable.push(id); }));
-      for(let H=0; H<cfg.halves && halfable.length; H++){
-        const id = halfable.splice(Math.floor(rng()*halfable.length), 1)[0];
-        const pair = "p" + H + "_" + id;
-        const whole = REG[id];
-        REG[id] = { kind:"half", fam:whole.fam, whole:whole.word, wrank:whole.rank, pair, side:"top", word:whole.word };
-        const hid = nid();
-        REG[hid] = { kind:"half", fam:whole.fam, whole:whole.word, wrank:whole.rank, pair, side:"bot", word:whole.word };
-        st.stock.splice(Math.floor(rng()*(st.stock.length+1)), 0, hid);
       }
     }
     function structuredDeal(cfg, rng, built){
@@ -1310,7 +1437,10 @@
     }
     function budgetFor(st){
       const totalPlay = st.cols.reduce((a, c) => a + c.length, 0) + st.stock.length + st.waste.length;
-      if(st.level > CLASSIC_LEVELS) return Math.max(40, Math.min(230, Math.round(totalPlay * 2.7) + 14));
+      if(st.level > CLASSIC_LEVELS){
+        const k = st.level - CLASSIC_LEVELS, mult = k <= 10 ? 2.7 : k <= 30 ? 2.5 : k <= 50 ? 2.35 : 2.2;
+        return Math.max(40, Math.min(240, Math.round(totalPlay * mult) + 12));
+      }
       return Math.max(30, Math.min(210, Math.round(totalPlay * 3.2) + 18));
     }
     function generateLevel(n){
@@ -1341,7 +1471,7 @@
         const rng = mulberry32(seed + 999);
         const built = buildCards(cfg, rng);
         const st = structuredDeal(cfg, rng, built);
-        addFeatures(st, { locks: t.locks, halves: t.halves }, rng, built.nid);
+        addFeatures(st, { locks: t.locks, halves: t.halves, hard: cfg.hard }, rng, built.nid);
         if(greedySolve(st, rng, Date.now() + 400) || solve(st, 20000, Date.now() + 500)){
           st.budget = budgetFor(st);
           st.movesLeft = st.budget;
@@ -1503,28 +1633,126 @@
     }
     const PRICES = { hint:15, undo:10, shuffle:20, moves:40 };
 
-    /* ================= tiny synth sounds ================= */
-    let AC = null;
-    function ac(){ if(!AC){ try{ AC = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} } if(AC && AC.state === "suspended") AC.resume(); return AC; }
-    function tone(freq, delay, dur, type, gain){
-      if(!S.sound) return; const ctx = ac(); if(!ctx) return;
-      const t = ctx.currentTime + (delay||0);
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = type || "sine"; o.frequency.setValueAtTime(freq, t);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(gain || 0.12, t + 0.015);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.12));
-      o.connect(g); g.connect(ctx.destination);
-      o.start(t); o.stop(t + (dur || 0.12) + 0.05);
+    /* ================= sound design ================= */
+    // All synthesized (no files): a soft mallet for cards, filtered-noise
+    // "flicks" for drawing and turning, bells with a short room tail for
+    // rewards. Banking walks up a pentatonic scale so a pile rises as it fills.
+    let AC = null, BUS = null, ROOM = null, NOISE = null;
+    function ac(){
+      if(!AC){
+        try{
+          AC = new (window.AudioContext || window.webkitAudioContext)();
+          const comp = AC.createDynamicsCompressor();
+          comp.threshold.value = -18; comp.knee.value = 12; comp.ratio.value = 3; comp.attack.value = .003; comp.release.value = .2;
+          BUS = AC.createGain(); BUS.gain.value = .9;
+          BUS.connect(comp); comp.connect(AC.destination);
+          // small room: two filtered feedback delays
+          ROOM = AC.createGain(); ROOM.gain.value = .22;
+          [.067, .113].forEach((dt, i) => {
+            const d = AC.createDelay(.5), fb = AC.createGain(), lp = AC.createBiquadFilter();
+            d.delayTime.value = dt; fb.gain.value = i ? .32 : .38; lp.type = "lowpass"; lp.frequency.value = 2600;
+            ROOM.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(comp);
+          });
+          NOISE = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+          const ch = NOISE.getChannelData(0);
+          for(let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+        }catch(e){ AC = null; }
+      }
+      if(AC && AC.state === "suspended") AC.resume();
+      return AC;
     }
+    const live = () => S.sound && ac();
+    function env(g, t, a, peak, dur){
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    }
+    // soft mallet: triangle body + quiet sine overtone through a closing lowpass
+    function mallet(freq, delay, dur, gain, wet){
+      if(!live()) return;
+      const t = AC.currentTime + (delay || 0), d = dur || .22;
+      const g = AC.createGain(), lp = AC.createBiquadFilter();
+      lp.type = "lowpass"; lp.frequency.setValueAtTime(Math.min(9000, freq * 8), t); lp.frequency.exponentialRampToValueAtTime(Math.max(300, freq * 1.5), t + d);
+      const o1 = AC.createOscillator(), o2 = AC.createOscillator(), g2 = AC.createGain();
+      o1.type = "triangle"; o1.frequency.setValueAtTime(freq, t);
+      o2.type = "sine"; o2.frequency.setValueAtTime(freq * 4.01, t); g2.gain.value = .18;
+      o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g);
+      env(g, t, .004, gain || .16, d);
+      g.connect(BUS); if(wet) { const w = AC.createGain(); w.gain.value = wet; g.connect(w); w.connect(ROOM); }
+      o1.start(t); o2.start(t); o1.stop(t + d + .05); o2.stop(t + d + .05);
+    }
+    // bell: sine with an inharmonic partial and a longer tail into the room
+    function bell(freq, delay, dur, gain){
+      if(!live()) return;
+      const t = AC.currentTime + (delay || 0), d = dur || .9;
+      [[1, 1], [2.76, .32], [5.4, .12]].forEach(([m, a]) => {
+        const o = AC.createOscillator(), g = AC.createGain();
+        o.type = "sine"; o.frequency.setValueAtTime(freq * m, t);
+        env(g, t, .005, (gain || .09) * a, d / (m > 1 ? m * .6 : 1));
+        o.connect(g); g.connect(BUS); g.connect(ROOM);
+        o.start(t); o.stop(t + d + .05);
+      });
+    }
+    // filtered noise burst: card flick, swoosh, click
+    function flick(delay, dur, f0, f1, q, gain){
+      if(!live()) return;
+      const t = AC.currentTime + (delay || 0), d = dur || .06;
+      const src = AC.createBufferSource(), bp = AC.createBiquadFilter(), g = AC.createGain();
+      src.buffer = NOISE; bp.type = "bandpass"; bp.Q.value = q || 1.2;
+      bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1 || f0, t + d);
+      env(g, t, Math.min(.01, d / 3), gain || .12, d);
+      src.connect(bp); bp.connect(g); g.connect(BUS);
+      src.start(t, Math.random() * .5); src.stop(t + d + .05);
+    }
+    // a low thump with a falling pitch (wood / felt)
+    function thump(freq, delay, gain, dur){
+      if(!live()) return;
+      const t = AC.currentTime + (delay || 0), d = dur || .14;
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * .55, t + d);
+      env(g, t, .003, gain || .14, d);
+      o.connect(g); g.connect(BUS); o.start(t); o.stop(t + d + .05);
+    }
+    const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+    const SLOT_ROOT = [261.63, 293.66, 329.63, 349.23, 392.0]; // each top slot has its own key
+    const note = (root, step) => root * Math.pow(2, PENTA[Math.min(step, PENTA.length - 1)] / 12);
     const sfx = {
-      place(){ tone(520, 0, .09, "sine", .12); tone(780, .05, .1, "sine", .1); },
-      flip(){ tone(340, 0, .05, "triangle", .07); },
-      error(){ tone(150, 0, .14, "sawtooth", .05); },
-      unlock(){ tone(660, 0, .08, "sine", .1); tone(990, .07, .12, "sine", .1); },
-      merge(){ tone(440, 0, .08, "sine", .1); tone(660, .06, .11, "sine", .1); },
-      draw(){ tone(420, 0, .05, "triangle", .06); },
-      win(){ [523,659,784,1047].forEach((f,i) => tone(f, i*.09, .16, "sine", .11)); }
+      tap(){ flick(0, .025, 3200, 2600, 2, .05); },
+      draw(){ flick(0, .07, 1400, 3400, .9, .11); thump(180, .01, .05, .06); },
+      flip(){ flick(0, .05, 2600, 1800, 1.4, .08); mallet(880, .02, .12, .04); },
+      stack(){ thump(210, 0, .12, .1); flick(0, .03, 1900, 1500, 1.5, .07); mallet(392, .005, .14, .06); },
+      place(){ this.stack(); },
+      bank(slot, step){
+        const root = SLOT_ROOT[(slot >= 0 ? slot : 0) % SLOT_ROOT.length];
+        thump(240, 0, .08, .08);
+        mallet(note(root, step), .005, .32, .15, .25);
+      },
+      crown(slot){
+        const root = SLOT_ROOT[(slot >= 0 ? slot : 0) % SLOT_ROOT.length];
+        thump(160, 0, .12, .12);
+        [0, 4, 7].forEach((st, i) => mallet(root * Math.pow(2, st / 12), .02 + i * .045, .4, .11, .3));
+        bell(root * 4, .16, 1.1, .05);
+      },
+      complete(slot){
+        const root = SLOT_ROOT[(slot >= 0 ? slot : 0) % SLOT_ROOT.length] * 2;
+        [0, 4, 7, 12, 16].forEach((st, i) => bell(root * Math.pow(2, st / 12), .08 + i * .07, 1.1, .07));
+        flick(.1, .5, 3000, 9000, .6, .03);
+      },
+      error(){ thump(150, 0, .13, .2); mallet(185, .01, .16, .05); },
+      unlock(){ flick(0, .02, 5000, 4000, 4, .12); flick(.05, .03, 3200, 2400, 3, .1); bell(1318.5, .09, .9, .08); bell(1975.5, .17, .9, .05); },
+      merge(){ flick(0, .28, 400, 3200, .8, .08); mallet(523.25, .2, .28, .12, .3); mallet(783.99, .27, .4, .13, .35); },
+      hint(){ bell(1046.5, 0, .7, .05); bell(1568, .1, .7, .04); },
+      shuffle(){ for(let i = 0; i < 6; i++) flick(i * .045, .05, 1200 + i * 300, 2800, 1, .07); },
+      undo(){ flick(0, .12, 3000, 900, .9, .08); },
+      win(){
+        // I - IV - V - I, mallet arpeggios with bells on top
+        [[261.63, [0,4,7]], [349.23, [0,4,7]], [392.0, [0,4,7]], [523.25, [0,4,7,12]]].forEach(([r, ch], bi) => {
+          ch.forEach((st, i) => mallet(r * Math.pow(2, st / 12), bi * .2 + i * .035, bi === 3 ? .9 : .35, .12, .3));
+        });
+        [1046.5, 1318.5, 1568, 2093].forEach((f, i) => bell(f, .62 + i * .08, 1.4, .06));
+        flick(.6, .9, 4000, 11000, .5, .025);
+      },
+      fail(){ [392.0, 349.23, 311.13, 261.63].forEach((f, i) => mallet(f, i * .16, .45, .1, .2)); thump(110, .64, .1, .35); }
     };
 
     /* ================= game runtime ================= */
@@ -1582,10 +1810,11 @@
       if(e.kind === "half"){
         el.classList.add("halfCard");
         const topPresent = r.side === "top";
+        const part = '<span class="halfPart">' + (r.ppic ? '<i class="halfPic">' + r.ppic + '</i>' : "") +
+          '<span class="halfWord">' + e.word + '</span></span>';
         const zone = (present, isTop) =>
-          '<div class="halfZone ' + (isTop ? "topH" : "botH") + (present ? " present" : " missing") + '"></div>';
-        el.innerHTML = zone(topPresent, true) + zone(!topPresent, false) +
-          '<span class="halfWord">' + e.word + '</span>';
+          '<div class="halfZone ' + (isTop ? "topH" : "botH") + (present ? " present" : " missing") + '">' + (present ? part : "") + '</div>';
+        el.innerHTML = zone(topPresent, true) + zone(!topPresent, false);
         return el;
       }
       // crown or member: plain ivory face, word centered, small art tab at the bottom
@@ -1802,7 +2031,8 @@
       feats.push('<div style="color:#2f6fb2">' + svgIcon("crown") + '<span><b>' + fams.length + ' hidden categories.</b> Work out which cards belong together.</span></div>');
       if(seqN) feats.push('<div style="color:#a4762a">' + svgIcon("steps") + '<span><b>' + seqN + ' sequence ' + (seqN > 1 ? "categories" : "category") + '.</b> Step-icon cards bank in one exact order, starting with the crown. Work out what comes next.</span></div>');
       if(cfg.locks) feats.push('<div style="color:#64788f">' + svgIcon("lock") + '<span><b>' + cfg.locks + ' locked card' + (cfg.locks>1?"s":"") + '.</b> Find the matching color key to open ' + (cfg.locks>1?"them":"it") + '.</span></div>');
-      if(cfg.halves) feats.push('<div style="color:#2e8b8b">' + svgIcon("half") + '<span><b>' + cfg.halves + ' split card' + (cfg.halves>1?"s":"") + '.</b> Drag the matching half onto it before it can be banked.</span></div>');
+      const halfN = Object.values(REG).filter(r => r.kind === "half").length / 2;
+      if(halfN) feats.push('<div style="color:#2e8b8b">' + svgIcon("half") + '<span><b>' + halfN + ' split card' + (halfN>1?"s":"") + '.</b> Two clue halves join into one word that fits a category. Pair them up before banking.</span></div>');
       feats.push('<div style="color:#2f6fb2">' + svgIcon("wave") + '<span>Bank every family onto its crown to win.</span></div>');
       $("#introFeats").innerHTML = feats.join("");
     }
@@ -1832,10 +2062,19 @@
       afterFams.forEach(f => { if(beforeFams.indexOf(f) < 0){ gain += 10; setTimeout(() => toast("Pile complete! +10 coins"), 60); } });
       if(gain > 0) S.coins += gain;
       // feedback
-      if(mv.kind === "bank" || mv.kind === "bankPile"){ buzz(14); sfx.place(); }
+      if(mv.kind === "bank" || mv.kind === "bankPile"){
+        buzz(14);
+        const pile = st.banked[mv.fam] || [], slot = st.found.indexOf(mv.fam);
+        const justDone = afterFams.indexOf(mv.fam) >= 0 && beforeFams.indexOf(mv.fam) < 0;
+        const added = Math.max(1, bankedDelta), start = pile.length - added;
+        let lag = 0;
+        if(start === 0){ sfx.crown(slot); lag = 140; }
+        for(let i = (start === 0 ? 1 : 0); i < Math.min(added, 5); i++) setTimeout(() => sfx.bank(slot, start + i), lag + i * 70);
+        if(justDone) setTimeout(() => sfx.complete(slot), 180);
+      }
       else if(mv.kind === "unlock"){ buzz([16,40,16]); sfx.unlock(); }
       else if(mv.kind === "merge"){ buzz([12,30,20]); sfx.merge(); }
-      else if(mv.kind === "stack"){ buzz(10); sfx.place(); }
+      else if(mv.kind === "stack"){ buzz(10); sfx.stack(); }
       else if(mv.kind === "flip"){ buzz(6); sfx.draw(); }
       if(flipped.length){ setTimeout(() => { buzz(7); sfx.flip(); }, 90); }
       render();
@@ -1843,7 +2082,7 @@
       if(isWin(st)){ onWin(); return; }
       if(st.movesLeft <= 0){
         G.over = true;
-        buzz([40,50,40]); sfx.error();
+        buzz([40,50,40]); sfx.fail();
         setTimeout(showFail, 450);
       }
       saveNow();
@@ -1926,7 +2165,7 @@
       if(!spendBooster("undo")){ renderBoosters(); return; }
       G.st = G.history.pop();
       G.over = false; G.sel = null; G.hintPair = null; G.lastFlip = []; G.lastBank = null;
-      buzz(8); sfx.flip();
+      buzz(8); sfx.undo();
       render();
       saveNow();
     }
@@ -1940,7 +2179,7 @@
       for(let i=all.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); const t = all[i]; all[i] = all[j]; all[j] = t; }
       st.stock = all; st.waste = [];
       G.sel = null; G.hintPair = null;
-      buzz([10,30,10]); sfx.draw();
+      buzz([10,30,10]); sfx.shuffle();
       toast("Deck shuffled");
       render();
       saveNow();
@@ -2211,7 +2450,7 @@
         ["wave", "#2f6fb2", "Match families", "Cards of the same family stack onto each other in the columns. Build stacks to uncover the face-down cards beneath. A crown card takes no cards while it sits in a column — move it into a top slot first, then stack its family onto it there."],
         ["steps", "#dd7f2e", "Sequences go in exact order", "Cards with the step icon belong to a sequence family. They only land in their one natural order, starting with the crown — figuring out which card comes next is part of the puzzle."],
         ["key", "#c0453e", "Keys open locks", "A locked card can't move until its matching color key lands on it. Keys hide in the deck and under other cards — the little key on a card back means one is buried there."],
-        ["half", "#2e8b8b", "Half cards join up", "A split card with a checkerboard half can't be banked. Find its other half and drag them together to make the whole card."],
+        ["half", "#2e8b8b", "Half cards join up", "A split card shows one clue, like Sea or Biscuit. Find the clue that completes it and drag them together: Sea + Biscuit makes Seabiscuit, which belongs with Famous Horses."],
         ["recycle", "#2f9e5f", "Cycle the deck", "Tap the deck to flip the next card up. When the deck runs out, tap it to shuffle the waste back in — cycling is unlimited, but every flip costs a move."],
         ["bulb", "#3a66c2", "Boosters help", "Hint points at a good move, Undo takes back your last play, Shuffle stirs the deck. Banking cards earns coins to buy more."]
       ];
@@ -2304,7 +2543,7 @@
     });
     document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden") saveNow(); });
     window.addEventListener("pagehide", saveNow);
-    $("#hintBtn").addEventListener("click", useHint);
+    $("#hintBtn").addEventListener("click", () => { sfx.hint(); useHint(); });
     $("#undoBtn").addEventListener("click", useUndo);
     $("#shuffleBtn").addEventListener("click", useShuffle);
     let resizeT = null;
@@ -2329,7 +2568,7 @@
   var btn = document.getElementById('installBtn');
   var deferred = null;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=20261009-hard1', { scope: './' }).catch(function(){});
+    navigator.serviceWorker.register('sw.js?v=20261009-hard2', { scope: './' }).catch(function(){});
   }
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
