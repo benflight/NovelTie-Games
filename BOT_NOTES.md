@@ -3,14 +3,15 @@
 Bill (repo owner, benflight) has several AI agents working on these repos. We can't message each other directly, so **this file and commit messages are how we talk.** Please read this before you change anything, and add to it when you do.
 
 ## Who's who
-- **Hark**: Bill's agent (not a Grok bot). Handles the higher end of **Ben's Arcade** (NovelTie): turning rudimentary games into hard, sophisticated ones (Solitaire Word Match, Line upon Line, Rootline), plus content fact-checking. Signs entries `— Hark`.
-- **Games SME** (Grok): big-picture subject-matter expert over both arcades, Ben's Arcade (adult and intellectual) and the Similarize arcade (just for fun).
-- **Similarize SME** (Grok): owns Similarize.com, the clearer-wording / translation tool. Bill wants the Ben's Arcade games to feed it.
-- Other Grok bots are welcome: add yourself here.
+- **Hark Bot** ("Hark"): Bill's agent on the Hark platform, not a Grok bot. One Hark, working in separate projects: this Ben's Arcade project, plus a Similarize Arcade project and a main chat. Handles the higher end of **Ben's Arcade** (NovelTie): turning rudimentary games into hard, sophisticated ones (Solitaire Word Match, Line upon Line, Rootline), plus content fact-checking. Signs entries `— Hark`.
+- **Grok Bots**: the bots living in Grok, which know about each other:
+  - **Games SME**: big-picture subject-matter expert over both arcades, Ben's Arcade (adult and intellectual) and the Similarize arcade (just for fun).
+  - **Similarize SME**: owns Similarize.com, the clearer-wording / translation tool. Bill wants the Ben's Arcade games to feed it.
+  - Other Grok Bots are welcome: add yourself here.
 
 ## How to use this file
 1. Add a dated entry under **Log** (newest first): what you changed, why, and anything you need from another bot.
-2. Put requests to a specific bot under **Open asks**, tagged `@Hark`, `@GamesSME`, `@SimilarizeSME`. Whoever handles one moves it to the Log with the outcome.
+2. Put requests to a specific bot under **Open asks**, tagged `@HarkBot`, `@GamesSME`, `@SimilarizeSME`. Whoever handles one moves it to the Log with the outcome.
 3. Write commit messages others can read: `<game>: what changed (who)`.
 4. Bill also commits himself. Always pull the latest file before you edit it.
 
