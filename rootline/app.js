@@ -99,7 +99,7 @@ function renderHome(){
   for(var t in TRACKS){ var cnt = t==="all"?W.length:W.filter(function(w){return w.track===t;}).length;
     h += '<button class="track" data-act="free" data-track="'+t+'"><b>'+TRACKS[t].name+'</b><span>'+TRACKS[t].desc+' · '+cnt+'</span></button>'; }
   h += '</div></div>'+(window.RootlineBank?window.RootlineBank.homeCard():"")+'<div class="row"><button class="btn" data-act="gates">🔤 Script Gates</button><button class="btn" data-act="codex">📜 Root Codex</button></div></div></div>';
-  h += '<p class="dim small" style="text-align:center;margin-top:26px">Progress saves on this device. Works offline once loaded.<br><a href="https://arcade.noveltie.com/" style="color:var(--gold)">← NovelTie Arcade</a></p>';
+  h += '<p class="dim small" style="text-align:center;margin-top:26px">Progress saves on this device. Works offline once loaded. <a href="#" data-act="audiocredits" style="color:var(--gold)">🎧 Audio credits</a><br><a href="https://arcade.noveltie.com/" style="color:var(--gold)">← NovelTie Arcade</a></p>';
   app.innerHTML = h;
 }
 function prevDay(ds){ var t=Date.parse(ds+"T12:00:00Z")-864e5; return new Date(t).toISOString().slice(0,10); }
@@ -355,6 +355,7 @@ document.addEventListener("click", function(e){
     case "next": R.layer++; R.answered=false; R.picked=-1; R.opts=null; R.justDug=false; renderRound();
       var q=document.querySelector(".q"); if(q&&q.getBoundingClientRect().top<0) q.scrollIntoView({behavior:"smooth"}); break;
     case "tocousins": R.stage="cousins"; renderRound(); window.scrollTo(0,0); break;
+    case "audiocredits": e.preventDefault(); if(window.RLSay) modal(RLSay.creditsHTML()); break;
     case "letters": var c=R.word.C[+d.i]; lettersModal(c.n,c.t,c.g,c.l); break;
     case "region": var r=d.r, cards=document.querySelectorAll('.cousin[data-region="'+r+'"]');
       if(cards.length){ cards[0].scrollIntoView({behavior:"smooth",block:"center"}); cards.forEach(function(x){ x.classList.remove("shake"); void x.offsetWidth; x.classList.add("shake"); }); } break;

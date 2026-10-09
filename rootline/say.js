@@ -33,6 +33,13 @@
     try{ var t = document.getElementById("say-note"); if(!t){ t = document.createElement("div"); t.id="say-note"; t.setAttribute("role","status"); document.body.appendChild(t); }
       t.textContent = msg; t.className = "show"; clearTimeout(note._t); note._t = setTimeout(function(){ t.className = ""; }, 2600); }catch(_){}
   }
+  function creditHTML(a){
+    return 'Recording: '+esc(a[2]||"unknown author (public domain)")+' · '+esc(a[1])+' · <a href="https://commons.wikimedia.org/wiki/'+esc(a[3]||"")+'" target="_blank" rel="noopener">ⓘ Commons</a>';
+  }
+  function credit(a){
+    try{ var t = document.getElementById("say-credit"); if(!t){ t = document.createElement("div"); t.id="say-credit"; document.body.appendChild(t); }
+      t.innerHTML = creditHTML(a); t.className = "show"; clearTimeout(credit._t); credit._t = setTimeout(function(){ t.className = ""; }, 5000); }catch(_){}
+  }
   function speak(text, code, label){
     try{
       if(!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined"){ note("This browser can't speak words aloud."); return false; }
@@ -56,7 +63,7 @@
     }
     var a = !pool && D.audio[key(text, lang)];
     if(a){
-      try{ var au = new Audio(COMMONS + a[0]); var p = au.play(); if(p && p.catch) p.catch(function(){ tts(); }); au.onerror = function(){ tts(); }; return; }catch(_){}
+      try{ var au = new Audio(COMMONS + a[0]); var p = au.play(); credit(a); if(p && p.catch) p.catch(function(){ tts(); }); au.onerror = function(){ tts(); }; return; }catch(_){}
     }
     tts();
   }
@@ -66,7 +73,7 @@
     opts = opts || {};
     var a = !opts.pool && D.audio[key(text, lang)];
     return '<span class="say" role="button" tabindex="0" aria-label="Hear '+esc(text)+'" data-say="'+esc(text)+'" data-sl="'+esc(lang||"")+'"'+(opts.pool?' data-pool="1"':'')+
-      ' title="'+(a ? esc("Recording: "+a[2]+", "+a[1]+" (Wikimedia Commons)") : "Hear it (device voice)")+'">🔊</span>';
+      ' title="'+(a ? esc("Recording: "+(a[2]||"public domain")+", "+a[1]+" (Wikimedia Commons). Tap to hear; credit link appears below.") : "Hear it (device voice)")+'">🔊</span>';
   }
   /* romanization · respelling, and (when hook:true) the memory hook */
   function help(text, lang, opts){
@@ -77,7 +84,11 @@
     if(opts.hook !== false && h.note) s += '<span class="xl-note">'+esc(h.note)+'</span>';
     return '<span class="xlw">'+s+'</span>';
   }
-  function credit(text, lang){ var a = D.audio[key(text, lang)]; return a ? {author:a[2], license:a[1], url:COMMONS+a[0]} : null; }
+  function creditsHTML(){
+    var ks = Object.keys(D.audio).sort(), h = '<h3>Audio credits</h3><p class="muted small" style="margin-top:0">Recordings from Wikimedia Commons, used under their licenses. Words without a recording use your device\'s voice.</p><ul class="credits">';
+    ks.forEach(function(k){ var a = D.audio[k], p = k.split("|"); h += '<li><b>'+esc(p[0])+'</b> <span class="dim small">'+esc(p[1])+'</span>: '+creditHTML(a)+'</li>'; });
+    return h + '</ul><div class="row"><button class="btn" data-act="close">Close</button></div>';
+  }
   function handle(e){
     var el = e.target && e.target.closest ? e.target.closest(".say") : null; if(!el) return;
     if(e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
@@ -86,5 +97,5 @@
   }
   document.addEventListener("click", handle, true);
   document.addEventListener("keydown", handle, true);
-  window.RLSay = {btn:btn, help:help, say:say, info:info, credit:credit};
+  window.RLSay = {btn:btn, help:help, say:say, info:info, creditsHTML:creditsHTML};
 })();

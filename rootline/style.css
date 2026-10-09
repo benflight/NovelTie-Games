@@ -207,3 +207,7 @@ h3{font-family:var(--serif);color:var(--gold2);margin:4px 0 10px;font-weight:600
 #say-note{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(20,16,12,.94);color:#f3e9d4;border:1px solid #6b5631;border-radius:12px;
   padding:8px 14px;font-size:14px;max-width:88vw;opacity:0;pointer-events:none;transition:opacity .2s;z-index:999}
 #say-note.show{opacity:1}
+#say-credit{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:rgba(20,16,12,.94);color:#e9dcc0;border:1px solid #6b5631;border-radius:10px;
+  padding:6px 12px;font-size:12.5px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s;z-index:999}
+#say-credit.show{opacity:1;pointer-events:auto}#say-credit a{color:var(--gold)}
+.credits{padding-left:18px;font-size:13px;line-height:1.5;max-height:60vh;overflow:auto}.credits a{color:var(--gold)}
