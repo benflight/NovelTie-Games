@@ -95,7 +95,7 @@ function renderHome(){
   for(var t in TRACKS){ var cnt = t==="all"?W.length:W.filter(function(w){return w.track===t;}).length;
     h += '<button class="track" data-act="free" data-track="'+t+'"><b>'+TRACKS[t].name+'</b><span>'+TRACKS[t].desc+' · '+cnt+'</span></button>'; }
   h += '</div></div><div class="row"><button class="btn" data-act="gates">🔤 Script Gates</button><button class="btn" data-act="codex">📜 Root Codex</button></div></div></div>';
-  h += '<p class="dim small" style="text-align:center;margin-top:26px">Progress saves on this device. Works offline once loaded.<br><a href="https://arcade.noveltie.com/" style="color:var(--gold)">← Noveltie Arcade</a></p>';
+  h += '<p class="dim small" style="text-align:center;margin-top:26px">Progress saves on this device. Works offline once loaded.<br><a href="https://arcade.noveltie.com/" style="color:var(--gold)">← NovelTie Arcade</a></p>';
   app.innerHTML = h;
 }
 function prevDay(ds){ var t=Date.parse(ds+"T12:00:00Z")-864e5; return new Date(t).toISOString().slice(0,10); }
