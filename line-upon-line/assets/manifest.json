@@ -2,7 +2,7 @@
   "name": "Line upon Line",
   "short_name": "Line upon Line",
   "description": "Learn the doctrine, history, and scriptures of The Church of Jesus Christ of Latter-day Saints.",
-  "id": "/line-upon-line/",
+  "id": "/line-upon-line/app",
   "start_url": "/line-upon-line/",
   "scope": "/line-upon-line/",
   "display": "standalone",
