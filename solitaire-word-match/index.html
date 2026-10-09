@@ -13,7 +13,7 @@
     <link rel="manifest" href="assets/manifest.json" />
     <link rel="apple-touch-icon" href="assets/icon-180.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-    <meta name="swm-build" content="20261008-play1" />
+    <meta name="swm-build" content="20261008-play2" />
     <title>Solitaire Word Match</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -155,14 +155,19 @@
       .fslot .ghostCrown{ width:52%; color:rgba(120,230,160,.28); }
       .fslot .fcard{ position:absolute; inset:0; }
       .fslot .prog{
-        position:absolute; right:3px; bottom:3px; z-index:4; background:rgba(0,0,0,.55); color:#fff;
+        position:absolute; right:3px; bottom:3px; z-index:30; background:rgba(0,0,0,.55); color:#fff;
         font-size:11px; font-weight:700; padding:1px 7px; border-radius:999px;
       }
-      .fslot .nextUp{
-        position:absolute; left:0; right:0; bottom:3px; z-index:4; text-align:center;
-        font-size:10px; font-weight:600; color:#ffe9b0; text-shadow:0 1px 3px rgba(0,0,0,.8);
-        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 3px;
+      .fslot .fcard{ transition:transform .15s ease; }
+      .fslot .fcard.under{ filter:brightness(.93); }
+      .fslot .famTab{
+        position:absolute; left:50%; top:-7px; transform:translateX(-50%); z-index:30; max-width:94%;
+        display:inline-flex; align-items:center; gap:3px; padding:1px 7px 1px 4px; border-radius:999px;
+        color:#fff; font-size:9.5px; font-weight:600; line-height:14px; letter-spacing:.02em; white-space:nowrap;
+        box-shadow:0 1px 3px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.35); pointer-events:none;
       }
+      .fslot .famTab svg{ width:11px; height:11px; flex:none; }
+      .fslot .famTab b{ font-weight:600; overflow:hidden; text-overflow:ellipsis; }
       .fslot.done{ box-shadow:inset 0 2px 6px rgba(0,0,0,.45), 0 0 0 2px var(--gold), 0 0 14px rgba(240,185,62,.55); }
       .fslot.dropOk, .col.dropOk .card.topCard, .card.dropOk{ box-shadow:0 0 0 3px #7dffb0, 0 0 16px rgba(125,255,176,.8) !important; }
       .fslot.dropBad{ box-shadow:0 0 0 3px #ff8d84 !important; }
@@ -242,7 +247,6 @@
         text-shadow:0 1px 0 rgba(255,255,255,.75);
       }
       .footArt{ height:38%; box-sizing:border-box; position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
-      .footArt .dots{ margin-bottom:3px; }
       .artTab{
         width:52%; max-width:42px; height:72%; min-height:19px;
         border-radius:999px 999px 0 0; display:grid; place-items:center;
@@ -254,9 +258,6 @@
       .card .foot{ height:26%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:2px; position:relative; z-index:2; overflow:hidden; }
       .card .seqBadge{ display:flex; flex-direction:column; align-items:center; gap:1px; color:#a4762a; }
       .card .seqBadge svg{ width:calc(var(--cw)*.23); height:calc(var(--cw)*.23); filter:drop-shadow(0 1px 0 rgba(255,255,255,.6)); }
-      .card .dots{ display:flex; gap:2.5px; }
-      .card .dots i{ width:5px; height:5px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff8dc, #e2d3ac); box-shadow:inset 0 0 0 1px #c9b586, 0 1px 1px rgba(0,0,0,.08); }
-      .card .dots i.on{ background:radial-gradient(circle at 35% 30%, #ffe98a, var(--gold)); box-shadow:inset 0 0 0 1px var(--gold-deep), 0 1px 2px rgba(0,0,0,.15); }
       .card.crownCard{ box-shadow:0 3px 7px rgba(0,0,0,.34), 0 0 0 1px rgba(240,185,62,.35), inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 2px var(--gold), inset 0 0 0 4px #fff3d6, 0 0 10px rgba(240,185,62,.35); }
       .card .crownBadge{
         position:absolute; top:3px; left:3px; z-index:4;
@@ -677,7 +678,7 @@
             if(pile.length){
               const inOrder = !FAM[b.fam].seq || pile.every((id, i) => eff(st, id).rank === i + 1);
               if(inOrder) return { ok:true, move:{ kind:"bankPile", src:drag, col:ci, from:drag.idx - pile.length, slot:target.slot, fam:b.fam, ids:pile, top:cards[0] } };
-              return { ok:false, reason:"Sequence: the pile under “" + b.word + "” has to start with “" + FAM[b.fam].members[0] + "” to move as a group" };
+              return { ok:false, reason:"Sequence: the pile under “" + b.word + "” isn't in order, so it can't move as a group" };
             }
           }
           let count = 1;
@@ -689,11 +690,8 @@
         if(count > 0) return { ok:true, move:{ kind:"bank", src:drag, slot:target.slot, fam, count } };
         if(b.kind === "key") return { ok:false, reason:"Keys only open locks" };
         if(b.kind === "half") return { ok:false, reason:"Join that half with its match first" };
-        if(b.fam === fam && FAM[fam].seq){
-          const L = (st.banked[fam]||[]).length;
-          const need = L === 0 ? FAM[fam].crown : FAM[fam].members[L-1];
-          return { ok:false, reason:"Sequence: “" + need + "” goes next" };
-        }
+        if(b.fam === fam && FAM[fam].seq)
+          return { ok:false, reason:"Sequence: “" + b.word + "” isn't next on this pile" };
         return { ok:false, reason:"That belongs to " + FAM[b.fam].label };
       }
       if(target.zone === "col"){
@@ -723,7 +721,6 @@
         if(t.kind === "crown") return { ok:false, reason:"Put the “" + t.word + "” card in a top slot before stacking on it" };
         if(b.fam !== t.fam) return { ok:false, reason:"“" + b.word + "” doesn't match “" + t.word + "”" };
         if(FAM[b.fam].seq && b.rank !== t.rank + 1){
-          const prev = t.rank === 0 ? FAM[b.fam].crown : FAM[b.fam].members[t.rank-1];
           return { ok:false, reason:"Sequence: “" + b.word + "” can't follow “" + t.word + "” yet" };
         }
         return { ok:true, move:{ kind:"stack", src:drag, col:ci } };
@@ -1128,13 +1125,6 @@
       // crown or member: plain ivory face, word centered, small art tab at the bottom
       const isCrown = e.kind === "crown";
       if(isCrown) el.classList.add("crownCard");
-      let dotsHtml = "";
-      if(fam.seq){
-        const total = FAMTOTAL[e.fam];
-        let dots = "";
-        for(let i=0; i<total; i++) dots += '<i class="' + (i <= e.rank ? "on" : "") + '"></i>';
-        dotsHtml = '<span class="dots">' + dots + '</span>';
-      }
       let tab;
       if(isCrown) tab = '<span class="artTab crownTab">' + svgIcon(fam.seq ? "steps" : "crown") + '</span>';
       else if(fam.seq) tab = '<span class="artTab seqTab">' + svgIcon("steps") + '</span>';
@@ -1144,7 +1134,7 @@
       el.innerHTML =
         (isCrown ? '<span class="crownBadge">' + svgIcon("crown") + '</span>' : "") +
         '<div class="word"' + wfs + '>' + e.word + '</div>' +
-        '<div class="footArt">' + dotsHtml + tab + '</div>';
+        '<div class="footArt">' + tab + '</div>';
       return el;
     }
     function render(){
@@ -1162,23 +1152,24 @@
           slot.setAttribute("aria-label", "Empty crown slot");
           slot.innerHTML = '<span class="ghostCrown">' + svgIcon("crown", 1.4) + '</span>';
         } else {
-          slot.setAttribute("aria-label", FAM[fam].label + " foundation, " + (st.banked[fam]||[]).length + " of " + FAMTOTAL[fam] + " banked");
-          const banked = st.banked[fam] || [];
-          const crownId = banked.find(id => eff(st, id).kind === "crown");
-          if(crownId){
-            const c = cardHTML(st, crownId, {});
-            c.classList.add("fcard");
-            slot.appendChild(c);
-          }
+          const F = FAM[fam], banked = st.banked[fam] || [];
           const done = banked.length >= FAMTOTAL[fam];
+          slot.setAttribute("aria-label", F.label + " pile, " + banked.length + " of " + FAMTOTAL[fam] + " cards");
+          // the newest card sits on top; up to two earlier ones peek out
+          // above it so it reads as a pile. The tab names the category.
+          const show = banked.slice(-3);
+          show.forEach((id, i) => {
+            const c = cardHTML(st, id, {});
+            c.classList.add("fcard");
+            const depth = show.length - 1 - i;
+            if(depth){ c.classList.add("under"); c.style.transform = "translateY(" + (-depth * 3) + "px)"; }
+            else if(G.lastBank === id) c.classList.add("popIn");
+            c.style.zIndex = i + 1;
+            slot.appendChild(c);
+          });
           if(done) slot.classList.add("done");
-          if(FAM[fam].seq && !done){
-            const L = banked.length;
-            const next = L === 0 ? FAM[fam].crown : FAM[fam].members[L-1];
-            slot.insertAdjacentHTML("beforeend", '<span class="nextUp">next: ' + next + '</span>');
-          } else {
-            slot.insertAdjacentHTML("beforeend", '<span class="prog">' + banked.length + "/" + FAMTOTAL[fam] + '</span>');
-          }
+          slot.insertAdjacentHTML("beforeend", '<span class="famTab" style="background:' + F.hue + '">' + svgIcon(F.seq ? "steps" : F.icon, 2.2) + '<b>' + F.label + '</b></span>');
+          slot.insertAdjacentHTML("beforeend", '<span class="prog">' + banked.length + "/" + FAMTOTAL[fam] + '</span>');
         }
         foundEl.appendChild(slot);
       }
@@ -1276,7 +1267,7 @@
     function hideOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.hidden = true); }
     function loadLevel(n){
       const gen = generateLevel(n);
-      G = { st: gen.st, cfg: gen.cfg, history: [], sel: null, hintPair: null, lastFlip: [], over: false, started: false };
+      G = { st: gen.st, cfg: gen.cfg, history: [], sel: null, hintPair: null, lastFlip: [], lastBank: null, over: false, started: false };
       // top up boosters a little each level
       S.boost.hint = Math.max(S.boost.hint, 2);
       S.boost.undo = Math.max(S.boost.undo, 4);
@@ -1301,7 +1292,7 @@
         '<span class="famChip"><i style="background:' + f.hue + '">' + svgIcon(f.icon, 2.2) + '</i>' + f.label + '</span>').join("");
       const feats = [];
       fams.filter(f => f.seq).forEach(f => feats.push(
-        '<div style="color:#a4762a">' + svgIcon("steps") + '<span><b>Sequence:</b> ' + [f.crown].concat(f.members.slice(0, FAMTOTAL[f.id]-1)).join(" → ") + ' — in exact order.</span></div>'));
+        '<div style="color:#a4762a">' + svgIcon("steps") + '<span><b>Sequence:</b> ' + f.label + ' cards bank in one exact order, starting with the crown. Work out what comes next.</span></div>'));
       if(cfg.locks) feats.push('<div style="color:#64788f">' + svgIcon("lock") + '<span><b>' + cfg.locks + ' locked card' + (cfg.locks>1?"s":"") + '.</b> Find the matching color key to open ' + (cfg.locks>1?"them":"it") + '.</span></div>');
       if(cfg.halves) feats.push('<div style="color:#2e8b8b">' + svgIcon("half") + '<span><b>' + cfg.halves + ' split card' + (cfg.halves>1?"s":"") + '.</b> Drag the matching half onto it before it can be banked.</span></div>');
       feats.push('<div style="color:#2f6fb2">' + svgIcon("wave") + '<span>Bank every family onto its crown to win.</span></div>');
@@ -1321,6 +1312,7 @@
       const flipped = applyMove(st, mv);
       st.movesLeft--;
       G.lastFlip = flipped;
+      G.lastBank = (mv.kind === "bank" || mv.kind === "bankPile") ? (st.banked[mv.fam] || []).slice(-1)[0] : null;
       G.sel = null; G.hintPair = null;
       // scoring
       let gain = 0;
@@ -1339,6 +1331,7 @@
       else if(mv.kind === "flip"){ buzz(6); sfx.draw(); }
       if(flipped.length){ setTimeout(() => { buzz(7); sfx.flip(); }, 90); }
       render();
+      G.lastBank = null; // pop animation only on the render right after the bank
       if(isWin(st)){ onWin(); return; }
       if(st.movesLeft <= 0){
         G.over = true;
@@ -1379,11 +1372,12 @@
       if(mv.kind === "bankPile") return "Drag the " + b.word + " crown into an empty top slot — its whole " + FAM[mv.fam].label + " pile comes with it";
       if(mv.kind === "bank"){
         if(eff(st, dragCards(st, mv.src)[0]).kind === "crown") return "Drag the " + b.word + " crown into an empty top slot";
-        return "Bank “" + b.word + "” onto the " + FAM[mv.fam].label + " crown";
+        return "Bank “" + b.word + "” onto the " + FAM[mv.fam].label + " pile";
       }
       if(mv.kind === "unlock") return "Drag the " + lockColor(st.locked[mv.lockCard]).name + " key onto its lock";
       if(mv.kind === "merge") return "Join the two halves of “" + b.word + "”";
       if(mv.kind === "stack"){
+        if(!st.cols[mv.col].length) return "Move “" + b.word + "” to the empty column";
         const t = eff(st, topId(st, mv.col));
         return "Put “" + b.word + "” on “" + t.word + "”";
       }
@@ -1418,7 +1412,7 @@
       if(!G.history.length){ toast("Nothing to undo yet"); return; }
       if(!spendBooster("undo")){ renderBoosters(); return; }
       G.st = G.history.pop();
-      G.over = false; G.sel = null; G.hintPair = null; G.lastFlip = [];
+      G.over = false; G.sel = null; G.hintPair = null; G.lastFlip = []; G.lastBank = null;
       buzz(8); sfx.flip();
       render();
     }
@@ -1697,7 +1691,7 @@
       const rows = [
         ["crown", "#dfa92f", "Crown cards open foundations", "Drag a crown card — King, Ocean, Thousand — into an empty top slot. Then stack that family's cards onto it to bank them off the board. A crown can also sit on a pile of its own family in a column: drag it to an empty top slot and the whole pile moves with it, flipping so the crown lands underneath."],
         ["wave", "#2f6fb2", "Match families", "Cards of the same family stack onto each other in the columns. Build stacks to uncover the face-down cards beneath. A crown card takes no cards while it sits in a column — move it into a top slot first, then stack its family onto it there."],
-        ["steps", "#dd7f2e", "Sequences go in exact order", "Cards with the step icon only land in order: Thousand, then Million, then Billion. The dots under the icon show each card's place in line."],
+        ["steps", "#dd7f2e", "Sequences go in exact order", "Cards with the step icon belong to a sequence family. They only land in their one natural order, starting with the crown — figuring out which card comes next is part of the puzzle."],
         ["key", "#c0453e", "Keys open locks", "A locked card can't move until its matching color key lands on it. Keys hide in the deck and under other cards — the little key on a card back means one is buried there."],
         ["half", "#2e8b8b", "Half cards join up", "A split card with a checkerboard half can't be banked. Find its other half and drag them together to make the whole card."],
         ["recycle", "#2f9e5f", "Cycle the deck", "Tap the deck to flip the next card up. When the deck runs out, tap it to shuffle the waste back in — cycling is unlimited, but every flip costs a move."],
@@ -1755,7 +1749,7 @@
   var btn = document.getElementById('installBtn');
   var deferred = null;
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=20261008-play1', { scope: './' }).catch(function(){});
+    navigator.serviceWorker.register('sw.js?v=20261008-play2', { scope: './' }).catch(function(){});
   }
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
