@@ -1,13 +1,16 @@
 /* Rootline Word Bank: "helpful game" rounds. Every answer becomes one event in a shared word bank that
    Similarize reads. Events queue in localStorage and upload in batches, so play works offline.
-   Check rounds ship WITHOUT answers: the bank reveals the answer + explanation in its reply to the FIRST answer
-   (the scored one; "Not sure" counts as a miss). Offline answers are queued and checked when online.
+   Two kinds of "same root?" cards:
+   * PRACTICE rounds (public seed set, shipped without answers): the bank replies with the answer + explanation. Fun + teaching.
+   * Everything else is "your call": open rounds AND the bank's quiet check rounds look and behave exactly the same
+     (same tag, no meanings, same "vote saved" reply, same XP). The bank never says which were checks or how they went;
+     its only feedback is the device's status ("warming up" / "your votes count"), tallied every few hours.
    Uploads need a short-lived session from POST /v1/session, which costs one Cloudflare Turnstile check per visit,
-   shown in a clear in-game "quick human check" card (never a stray box). Dealt checks are served in the bank's order.
+   shown in a clear in-game "quick human check" card (never a stray box). Dealt rounds are served in the bank's order.
    Vanilla JS, no dependencies. */
 (function(){
 "use strict";
-var GAME_VERSION = "rootline-helpful-3";
+var GAME_VERSION = "rootline-helpful-4";
 var CFG = window.ROOTLINE_BANK_CONFIG || {};                         /* see bank-config.js (prod switch lives there) */
 var DEFAULT_API = CFG.api || "https://rootline-bank-staging.ben-e22.workers.dev";
 var HOSTS = CFG.hosts || ["rootline-bank-staging.ben-e22.workers.dev", "rootline-bank.ben-e22.workers.dev"];
@@ -54,42 +57,36 @@ function uuid(){
   b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128; var h=[].map.call(b,function(x){return (x+256).toString(16).slice(1);}).join("");
   return h.slice(0,8)+"-"+h.slice(8,12)+"-"+h.slice(12,16)+"-"+h.slice(16,20)+"-"+h.slice(20);
 }
-var GATE0 = {min_checks:10, min_per_class:2, min_accuracy:0.75, min_days:2};
+var GATE0 = {min_days:2};
 var bs = {queue:[], sent:0, rounds:0, xp:0, seen:{}, sprints:0, lastFlush:null,
-  device:null, deal:[], dealDay:null, gate:GATE0, trust:{ok:false}, stats:{yn:0,yc:0,nn:0,nc:0}, cdays:{}, counted:{}, evKey:{}, checks:{}, checked:0, checkedRight:0};
+  device:null, deal:[], dealDay:null, gate:GATE0, trust:{ok:false}, evKey:{}, checks:{}, practiced:0, practiceRight:0};
 try{ var raw = localStorage.getItem(KEY); if(raw){ var o = JSON.parse(raw); for(var k in bs){ if(o[k]!==undefined) bs[k]=o[k]; } } }catch(e){}
+if(bs.gate && bs.gate.min_accuracy !== undefined){ bs.gate = GATE0; bs.deal = []; bs.dealDay = null; bs.trust = {ok:false}; }   /* saved by an older build */
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(bs)); }catch(e){ /* quota: drop oldest queued */ bs.queue = bs.queue.slice(-500); bs.checks = {}; try{ localStorage.setItem(KEY, JSON.stringify(bs)); }catch(_){} } }
 save();
 var nfc = function(s){ return String(s).normalize("NFC").trim(); };
 function pairKey(items){ return "pair|" + items.slice(0,2).map(function(i){ return i.lang+":"+nfc(i.text); }).sort().join("|"); }
 
-/* ---------- seed bundle (lazy; cached by the service worker). Check rounds carry no answers. ---------- */
+/* ---------- seed bundle (lazy; cached by the service worker). Practice rounds carry no answers. ---------- */
 var SEED = null, seedP = null;
 function loadSeed(){
   if(SEED) return Promise.resolve(SEED);
   if(!seedP) seedP = fetch("bank-seed.json").then(function(r){ if(!r.ok) throw new Error("seed "+r.status); return r.json(); })
-    .then(function(j){ j.seed.forEach(function(r){ r.kind = "shared_root"; r.check = true; r.key = pairKey(r.items); }); SEED = j; return j; })
+    .then(function(j){ j.seed.forEach(function(r){ r.kind = "shared_root"; r.practice = true; r.key = pairKey(r.items); }); SEED = j; return j; })
     .catch(function(e){ seedP = null; throw e; });
   return seedP;
 }
 
-/* ---------- warm-up gate (mirrors the server's: right on dealt checks, on 2+ different days). The bank has the final
-   word: "Your votes count" only once its last tally says so (bs.trust from /v1/session). ---------- */
+/* ---------- warm-up status: the bank's word only (bs.trust from /v1/session, tallied every few hours). The game can't
+   know more: the bank never says which rounds were its quiet checks, or how they went. ---------- */
 function gateState(){
-  var g = bs.gate || GATE0, s = bs.stats, n = s.yn + s.nn, days = Object.keys(bs.cdays || {}).length, minDays = g.min_days || 1;
-  var acc = ((s.yc + 1) / (s.yn + 2) + (s.nc + 1) / (s.nn + 2)) / 2;
-  var checksOk = n >= g.min_checks && s.yn >= g.min_per_class && s.nn >= g.min_per_class && acc >= g.min_accuracy;
-  var ok = checksOk && days >= minDays;
-  return {ok: ok, bank: !!(bs.trust && bs.trust.ok), checksOk: checksOk, n: n, days: days, minDays: minDays, need: Math.max(0, g.min_checks - n), acc: acc, g: g};
+  var ok = !!(bs.trust && bs.trust.ok);
+  return {ok: ok, bank: ok, minDays: (bs.gate && bs.gate.min_days) || 2};
 }
 function gateLine(){
   var G = gateState();
-  if(G.bank) return "✓ Your votes count. They're tallied into the word bank every few hours.";
-  if(!bs.device) return "Warming up: your votes start counting after "+G.g.min_checks+" check rounds on "+G.minDays+" different days.";
-  if(G.ok) return "✓ Checks done. Your votes start counting after the bank's next tally (every few hours).";
-  if(G.need > 0) return "Warming up: "+G.need+" more check"+(G.need===1?"":"s")+" until your votes count"+(G.minDays > 1 ? " (spread over "+G.minDays+" days)" : "")+".";
-  if(G.checksOk) return "Warming up: come back tomorrow for a few more checks. Votes count after checks on "+G.minDays+" different days.";
-  return "Warming up: your votes count once your checks are about "+Math.round(G.g.min_accuracy*100)+"%+ right on both true cousins and look-alikes. Keep going!";
+  if(G.ok) return "✓ Your votes count. They're tallied into the word bank every few hours.";
+  return "Warming up: play a few sprints on "+G.minDays+" different days and your votes start counting. Some rounds are quiet checks; the bank never says which, so just give your honest best.";
 }
 
 /* ---------- session: one Turnstile check -> short-lived token from the bank ---------- */
@@ -126,10 +123,10 @@ function startSession(base, t){
   }).then(function(j){
     sess = {token: j.session, exp: j.expires_at, api: base};
     try{ sessionStorage.setItem(SESS_KEY, JSON.stringify(sess)); localStorage.setItem(DEV_KEY, j.device); }catch(e){}
-    if(bs.device !== j.device_id){ bs.device = j.device_id; bs.stats = {yn:0,yc:0,nn:0,nc:0}; bs.cdays = {}; bs.counted = {}; }
-    /* the deal, in the bank's order: the game serves dealt checks in exactly this order */
-    bs.deal = (j.deal || []).map(function(d, i){ return {kind:"shared_root", check:true, dealt:true, pos:i, key:d.key, items:d.items}; });
-    bs.gate = j.gate || bs.gate; bs.trust = j.trust || {ok:false}; bs.dealDay = utcDay(); save();
+    bs.device = j.device_id;
+    /* the deal (open rounds and quiet checks, indistinguishable), in the bank's order: served in exactly this order */
+    bs.deal = (j.deal || []).map(function(d, i){ return {kind:"shared_root", dealt:true, pos:i, key:d.key, items:d.items}; });
+    bs.gate = j.gate || bs.gate; bs.trust = {ok: !!(j.trust && j.trust.ok)}; bs.dealDay = utcDay(); save();
     return sess.token;
   });
 }
@@ -207,10 +204,10 @@ function record(round, answer, meta){
     answer: String(answer), confidence: confidence(meta.ms, meta.hint)
   };
   bs.queue.push(ev); if(bs.queue.length > QUEUE_MAX) bs.queue = bs.queue.slice(-QUEUE_MAX);
-  bs.rounds++; bs.seen[r.key || r.id] = 1;
-  if(r.check) bs.evKey[ev.id] = {key: r.key || pairKey(r.items), dealt: !!r.dealt};
+  bs.rounds++; bs.seen[r.key || r.id] = 1; if(r.kind === "shared_root") bs.seen[pairKey(r.items)] = 1;
+  if(r.practice) bs.evKey[ev.id] = {key: r.key || pairKey(r.items)};
   save();
-  if(bs.queue.length >= 10 || r.check) flush();   /* check rounds upload right away: the reply carries the answer */
+  if(bs.queue.length >= 10 || r.practice) flush();   /* practice rounds upload right away: the reply carries the answer */
   return ev;
 }
 /* confidence: instant taps and very slow answers count less; a hint counts less */
@@ -220,16 +217,13 @@ function confidence(ms, hint){
   return Math.round(c * 100) / 100;
 }
 var waiters = {};
+/* the bank's reply carries answers for PRACTICE rounds only (public seed set); everything else is just "recorded" */
 function applyChecks(list){
   (list || []).forEach(function(c){
-    var meta = bs.evKey[c.id]; delete bs.evKey[c.id];
-    bs.checks[c.id] = c; if(!c.withheld){ bs.checked++; if(c.correct === true) bs.checkedRight++; }
+    if(!c || !c.practice) return;
+    delete bs.evKey[c.id];
+    bs.checks[c.id] = c; bs.practiced++; if(c.correct === true) bs.practiceRight++;
     if(c.gloss) for(var gk in c.gloss) GL2[gk] = c.gloss[gk];
-    if(meta && c.dealt) bs.counted[meta.key] = 1;   /* answered (scored now or before): never served again */
-    if(c.scored && meta){   /* the bank scores only the first answer to each dealt check; "not sure" is a miss */
-      if(c.answer === "yes"){ bs.stats.yn++; if(c.correct) bs.stats.yc++; } else { bs.stats.nn++; if(c.correct) bs.stats.nc++; }
-      bs.cdays = bs.cdays || {}; bs.cdays[utcDay()] = 1;
-    }
     if(waiters[c.id]){ waiters[c.id](c); delete waiters[c.id]; }
   });
   var ids = Object.keys(bs.checks); if(ids.length > 300) ids.slice(0, ids.length - 300).forEach(function(i){ delete bs.checks[i]; });
@@ -264,7 +258,7 @@ function flush(keepalive){
       });
   }).catch(function(){ flushing = false; backoff = Date.now() + 30e3; return false; });
 }
-/* resolves with the bank's verdict for one check event, or null if it can't be checked right now (offline etc.) */
+/* resolves with the bank's answer for one practice event, or null if it can't be checked right now (offline etc.) */
 function waitCheck(id, ms){
   return new Promise(function(res){
     if(bs.checks[id]) return res(bs.checks[id]);
@@ -288,20 +282,20 @@ function pickFrom(list, n, pred){
 }
 function buildSprint(){
   var S = SEED, open = S.open, warm = !gateState().ok;
-  /* dealt checks strictly in the bank's order (it only scores answers given in order: no skipping ahead) */
-  var dealt = (bs.deal || []).filter(function(r){ return !bs.counted[r.key] && !bs.seen[r.key]; });
-  /* warming up: mostly check rounds (from this device's deal) so votes start counting soon; after that, mostly open rounds */
-  var nCheck = warm ? 7 : 3, checks = dealt.slice(0, nCheck);
-  if(checks.length < nCheck) checks = checks.concat(pickFrom(S.seed, nCheck - checks.length));   /* practice checks: revealed, never count */
-  var nOpen = SPRINT - checks.length, nBridge = warm ? 1 : 2, nSim = warm ? 1 : 2;
-  var cards = [].concat(checks,
+  /* this device's deal (open rounds + the bank's quiet checks, indistinguishable) strictly in the bank's order */
+  var dealt = (bs.deal || []).filter(function(r){ return !bs.seen[r.key]; });
+  var d = dealt.slice(0, warm ? 6 : 4), inSprint = {};
+  d.forEach(function(r){ inSprint[r.key] = 1; });
+  var nPractice = 2, nBridge = 1, nSim = warm ? 1 : 2;
+  var cards = [].concat(d,
+    pickFrom(S.seed, nPractice),   /* practice: the bank shows the answer + explanation */
     pickFrom(open, nBridge, function(r){ return r.kind==="bridge_wording" && r.options && r.options.length; }),
-    pickFrom(open, nSim, function(r){ return r.kind==="similarity_vote"; }),
-    pickFrom(open, Math.max(0, nOpen - nBridge - nSim), function(r){ return r.kind==="shared_root"; })
+    pickFrom(open, nSim, function(r){ return r.kind==="similarity_vote"; })
   );
+  cards = cards.concat(pickFrom(open, Math.max(0, SPRINT - cards.length), function(r){ return r.kind==="shared_root" && !inSprint[pairKey(r.items)] && !bs.seen[pairKey(r.items)]; }));
   cards = shuffle(cards);
-  for(var i=0;i<cards.length;i++){ if(cards[i].check){ var c=cards.splice(i,1)[0]; cards.unshift(c); break; } }   /* teach the format first */
-  /* shuffled slots, but the dealt checks keep their dealt order */
+  for(var i=0;i<cards.length;i++){ if(cards[i].practice){ var c=cards.splice(i,1)[0]; cards.unshift(c); break; } }   /* teach the format first */
+  /* shuffled slots, but the dealt rounds keep their dealt order */
   var slots = [], inOrder = cards.filter(function(r, j){ if(r.dealt){ slots.push(j); return true; } return false; }).sort(function(x, y){ return x.pos - y.pos; });
   slots.forEach(function(j, k){ cards[j] = inOrder[k]; });
   return cards.slice(0, SPRINT);
@@ -310,7 +304,7 @@ function buildSprint(){
 /* ---------- UI ---------- */
 var U = function(){ return window.ROOTLINE.ui; };
 var B = null;   /* current sprint */
-var GL2 = {};   /* meanings of dealt check words: they arrive with the bank's verdict, never before the answer */
+var GL2 = {};   /* meanings of practice words: they arrive with the bank's answer */
 function gloss(it){ var k = it.lang+":"+it.text; return GL2[k] || (SEED && SEED.gloss[k]) || ""; }
 function wordTile(it, showGloss){
   var g = gloss(it);
@@ -328,17 +322,17 @@ function explain(c, r){
   if(cl.root) return 'Both trace back to '+esc(LN[cl.root_lang]||cl.root_lang)+' <b class="sc">'+esc(cl.root)+'</b>.';
   return "";
 }
+function verifyBtn(){ return '<div style="margin-top:8px"><button class="btn wb-small" data-act="wb-verify">🛡️ Do the human check</button></div>'; }
+/* practice rounds only: the bank's answer + explanation + source */
 function checkFeedback(c, r, a, xp){
   if(c === undefined) return '<div class="feedback wb-checking"><b>Checking…</b></div>';
-  if(c && c.already_answered) return '<div class="feedback"><b>You answered this check before.</b><br><span class="small">Only your first answer to a check counts.</span></div>';
-  if(c === null || c.withheld){
-    if(navigator.onLine === false) return '<div class="feedback"><b>Saved: checked when online.</b><br><span class="small">The answer and its source appear once you\'re connected; the check counts then.</span></div>';
-    if(!sessionValid() && SITEKEY && apiBase()) return '<div class="feedback"><b>Saved: checked after the quick human check.</b><br><span class="small">Your answer is kept on this device'+(r && r.dealt ? ' and counts once you\'ve done the check.' : '; the bank checks it once you\'ve done the check.')+'</span>'+
-      '<div style="margin-top:8px"><button class="btn wb-small" data-act="wb-verify">🛡️ Do the human check</button></div></div>';
-    return '<div class="feedback"><b>Saved: checking shortly.</b><br><span class="small">The bank is busy; this check uploads with your next answers and still counts.</span></div>';
+  if(!c){
+    if(navigator.onLine === false) return '<div class="feedback"><b>Saved: answer shown when online.</b><br><span class="small">The answer and its source appear once you\'re connected.</span></div>';
+    if(!sessionValid() && SITEKEY && apiBase()) return '<div class="feedback"><b>Saved on this device.</b><br><span class="small">Do the quick human check to see the answer here.</span>'+verifyBtn()+'</div>';
+    return '<div class="feedback"><b>Saved: the bank is busy.</b><br><span class="small">Your answer uploads with your next ones.</span></div>';
   }
   var ans = c.answer === "yes";
-  if(a === "unsure") return '<div class="feedback"><b>The answer: '+(ans?"same root":"not related")+'.</b><br><span class="small">“Not sure” counts as a miss on check rounds.</span><br>'+explain(c, r)+srcLinks(c)+'</div>';
+  if(a === "unsure") return '<div class="feedback"><b>The answer: '+(ans?"same root":"not related")+'.</b><br>'+explain(c, r)+srcLinks(c)+'</div>';
   if(c.correct) return '<div class="feedback good"><b>Right! +'+xp+' XP</b><br>'+explain(c, r)+srcLinks(c)+'</div>';
   return '<div class="feedback bad"><b>Not quite: '+(ans?"they do share a root":"they only look alike")+'.</b><br>'+explain(c, r)+srcLinks(c)+'</div>';
 }
@@ -363,8 +357,10 @@ function renderCard(){
   var h = U().topbar("Word Bank", right) + progressBar() + '<div class="card wb-card">';
   var done = B.answered !== null;
   if(r.kind==="shared_root" || r.kind==="not_related"){
-    h += '<div class="wb-tag">'+(r.check?"✔︎ Check round: Wiktionary knows the answer"+(r.dealt?' <span class="dim">· “Not sure” counts as a miss</span>':""):"🌱 Open round: no one knows yet")+'</div>';
-    h += '<p class="q" style="margin-top:4px">Do these two words share a root?</p><div class="wb-pair">'+wordTile(r.items[0], B.hint||done)+'<span class="wb-amp">&</span>'+wordTile(r.items[1], B.hint||done)+'</div>';
+    /* practice is labelled; open rounds and quiet checks share one look: same tag, no meanings (checks have none to show) */
+    var mg = !r.dealt && (B.hint || done);
+    h += '<div class="wb-tag">'+(r.practice?"📘 Practice round: the answer comes right after":"🌱 Your call: help the bank decide")+'</div>';
+    h += '<p class="q" style="margin-top:4px">Do these two words share a root?</p><div class="wb-pair">'+wordTile(r.items[0], mg)+'<span class="wb-amp">&</span>'+wordTile(r.items[1], mg)+'</div>';
     if(!done){
       h += '<div class="wb-ans"><button class="btn wb-yes" data-act="wb-ans" data-a="yes">🌳 Same root</button><button class="btn wb-no" data-act="wb-ans" data-a="no">✂️ Not related</button></div>';
       h += '<div class="row" style="margin-top:10px">'+(B.hint||r.dealt?'':'<button class="btn wb-small" data-act="wb-hint">💡 Show meanings</button>')+'<button class="btn wb-small" data-act="wb-ans" data-a="unsure">🤷 Not sure</button></div>';
@@ -387,23 +383,23 @@ function renderCard(){
 }
 function feedback(r){
   var h = "";
-  if(r.check) h += checkFeedback(B.check, r, B.answered, B.lastXp);
+  if(r.practice) h += checkFeedback(B.check, r, B.answered, B.lastXp);
   else {
-    var G = gateState();
+    var noSess = !sessionValid() && SITEKEY && apiBase() && navigator.onLine !== false;
     h += '<div class="feedback good"><b>Vote saved. +'+B.lastXp+' XP</b><br><span class="small">'+
-      (G.ok ? "No answer key here: your vote joins other players' votes, tallied into the word bank every few hours."
-            : "No answer key here. "+U().esc(gateLine()))+'</span></div>';
+      (noSess ? "Kept on this device: it goes to the word bank after the quick human check." :
+       "Your vote joins other players' votes, tallied into the word bank every few hours.")+'</span>'+(noSess ? verifyBtn() : '')+'</div>';
   }
-  h += '<div class="sep"></div><button class="btn primary" data-act="wb-next"'+(r.check && B.check === undefined ? ' disabled' : '')+'>'+(B.i < B.cards.length-1 ? "Continue →" : "Finish sprint")+'</button>';
+  h += '<div class="sep"></div><button class="btn primary" data-act="wb-next"'+(r.practice && B.check === undefined ? ' disabled' : '')+'>'+(B.i < B.cards.length-1 ? "Continue →" : "Finish sprint")+'</button>';
   return h;
 }
 function answer(a){
   if(!B || B.answered !== null) return;
   var r = B.cards[B.i], ms = performance.now() - B.t0, xp;
-  if(r.check){
+  if(r.practice){
     var ev = record(r, a, {ms: ms, hint: B.hint}), id = ev.id, hint = B.hint;
     B.answered = a; B.check = undefined; B.lastXp = 0; B.evId = id;
-    if(!sessionValid() && navigator.onLine !== false){ B.check = null; B.lastXp = 1; B.xp += 1; bs.xp += 1; save(); renderCard(); return; }   /* no session: saved, scored after the check */
+    if(!sessionValid() && navigator.onLine !== false){ B.check = null; B.lastXp = 1; B.xp += 1; bs.xp += 1; save(); renderCard(); return; }   /* no session: saved; answer after the human check */
     renderCard();
     waitCheck(id, 6000).then(function(c){
       if(!B || B.cards[B.i] !== r) return;
@@ -429,8 +425,7 @@ function next(){
 function renderDone(){
   var n = bs.rounds - B.startRounds;
   var h = U().topbar("Word Bank") + '<div class="wordcard"><div class="tag">Sprint complete</div><div class="w" style="font-size:clamp(40px,10vw,64px)">+'+B.xp+' XP</div>'+
-    '<div class="d">'+(B.verified ? B.right+' of '+B.verified+' check rounds right'
-      : (navigator.onLine === false ? 'Check rounds are scored when you\'re online' : sessionValid() ? 'Check rounds: scoring…' : 'Check rounds are scored after the quick human check'))+'</div></div><div class="sep"></div>';
+    '<div class="d">'+(B.verified ? B.right+' of '+B.verified+' practice rounds right · '+n+' answers saved' : n+' answers saved for the word bank')+'</div></div><div class="sep"></div>';
   h += helpedNote(n) + '<div class="sep"></div><div class="row"><button class="btn primary" data-act="wb-start">Another sprint →</button><button class="btn" data-act="home">Home</button></div>';
   document.getElementById("app").innerHTML = h; window.scrollTo(0,0);
   var refresh = function(){ var el = document.querySelector(".wb-note"); if(el && screenIs()) el.outerHTML = helpedNote(n); };
@@ -479,8 +474,10 @@ document.addEventListener("click", function(e){
   else if(a==="wb-next"){ if(!el.disabled) next(); }
   else if(a==="wb-verify"){
     humanCheck().then(function(tok){
-      if(!tok || !B || B.answered === null || !B.evId || B.check) return;
-      var r = B.cards[B.i], id = B.evId; B.check = undefined; renderCard();
+      if(!tok || !B || B.answered === null) return;
+      var r = B.cards[B.i];
+      if(!r.practice || !B.evId || B.check){ renderCard(); return; }
+      var id = B.evId; B.check = undefined; renderCard();
       waitCheck(id, 8000).then(function(c){ if(!B || B.cards[B.i] !== r) return; B.check = c;
         if(c && (c.correct === true || c.correct === false)){ B.verified++; if(c.correct){ B.right++; } }
         renderCard(); });
