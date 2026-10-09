@@ -176,14 +176,6 @@
       }
       .fslot .fcard{ transition:transform .15s ease; }
       .fslot .fcard.under{ filter:brightness(.93); }
-      .fslot .famTab{
-        position:absolute; left:50%; top:-7px; transform:translateX(-50%); z-index:30; max-width:94%;
-        display:inline-flex; align-items:center; gap:3px; padding:1px 7px 1px 4px; border-radius:999px;
-        color:#fff; font-size:9.5px; font-weight:600; line-height:14px; letter-spacing:.02em; white-space:nowrap;
-        box-shadow:0 1px 3px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.35); pointer-events:none;
-      }
-      .fslot .famTab svg{ width:11px; height:11px; flex:none; }
-      .fslot .famTab b{ font-weight:600; overflow:hidden; text-overflow:ellipsis; }
       .fslot.done{ box-shadow:inset 0 2px 6px rgba(0,0,0,.45), 0 0 0 2px var(--gold), 0 0 14px rgba(240,185,62,.55); }
       .fslot.dropOk, .col.dropOk .card.topCard, .card.dropOk{ box-shadow:0 0 0 3px #7dffb0, 0 0 16px rgba(125,255,176,.8) !important; }
       .fslot.dropBad{ box-shadow:0 0 0 3px #ff8d84 !important; }
@@ -382,13 +374,6 @@
       .sheet .rowBtns{ display:flex; flex-direction:column; gap:9px; margin-top:14px; }
       .sheet .rowBtns .bigBtn{ width:100%; }
       .diffTag{ display:inline-block; padding:2px 12px; border-radius:999px; color:#fff; font-size:13px; font-weight:600; vertical-align:middle; }
-      .famChips{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:10px 0 4px; }
-      .famChip{
-        display:inline-flex; align-items:center; gap:5px; background:#fff; border:1.5px solid var(--card-line);
-        border-radius:999px; padding:3px 10px 3px 5px; font-size:13px; font-weight:600;
-      }
-      .famChip i{ width:20px; height:20px; border-radius:50%; display:grid; place-items:center; color:#fff; }
-      .famChip svg{ width:13px; height:13px; }
       .featList{ margin:10px auto 0; display:flex; flex-direction:column; gap:6px; max-width:300px; }
       .featList div{ display:flex; gap:8px; align-items:center; font-size:14px; background:#fff; border:1.5px solid var(--card-line); border-radius:11px; padding:6px 10px; }
       .featList svg{ width:18px; height:18px; flex:none; }
@@ -482,7 +467,6 @@
           <button class="closeX" data-close="introOverlay" aria-label="Close">✕</button>
           <h2 id="introTitle">Level 1</h2>
           <p class="sub"><span class="diffTag" id="introDiff">Easy</span> &nbsp;<span id="introMoves"></span></p>
-          <div class="famChips" id="introFams"></div>
           <div class="featList" id="introFeats"></div>
           <div class="rowBtns">
             <button class="bigBtn" id="playBtn">Play</button>
@@ -702,7 +686,7 @@
       if(target.zone === "found"){
         const fam = st.found[target.slot];
         if(!fam){
-          if(b.kind !== "crown") return { ok:false, reason: b.kind === "member" ? (FAM[b.fam].label + " needs its crown card first") : "Only a crown card opens a slot" };
+          if(b.kind !== "crown") return { ok:false, reason: b.kind === "member" ? ("“" + b.word + "” needs its crown card in a top slot first") : "Only a crown card opens a slot" };
           // crown sitting on a pile of its own family: the whole group moves
           // together, flipping so the crown lands on the bottom
           if(drag.zone === "col" && cards.length === 1 && drag.idx === st.cols[drag.col].length - 1){
@@ -730,7 +714,7 @@
         if(b.kind === "half") return { ok:false, reason:"Join that half with its match first" };
         if(b.fam === fam && FAM[fam].seq)
           return { ok:false, reason:"Sequence: “" + b.word + "” isn't next on this pile" };
-        return { ok:false, reason:"That belongs to " + FAM[b.fam].label };
+        return { ok:false, reason:"“" + b.word + "” doesn't belong on that pile" };
       }
       if(target.zone === "col"){
         const ci = target.col;
@@ -1328,7 +1312,7 @@
         } else {
           const F = FAM[fam], banked = st.banked[fam] || [];
           const done = banked.length >= FAMTOTAL[fam];
-          slot.setAttribute("aria-label", F.label + " pile, " + banked.length + " of " + FAMTOTAL[fam] + " cards");
+          slot.setAttribute("aria-label", "Top pile, " + banked.length + " of " + FAMTOTAL[fam] + " cards, showing " + (eff(st, banked[banked.length - 1]) || {}).word);
           // the newest card sits on top; up to two earlier ones peek out
           // above it so it reads as a pile. The tab names the category.
           const show = banked.slice(-3);
@@ -1342,7 +1326,6 @@
             slot.appendChild(c);
           });
           if(done) slot.classList.add("done");
-          slot.insertAdjacentHTML("beforeend", '<span class="famTab" style="background:' + F.hue + '">' + svgIcon(F.seq ? "steps" : F.icon, 2.2) + '<b>' + F.label + '</b></span>');
           slot.insertAdjacentHTML("beforeend", '<span class="prog">' + banked.length + "/" + FAMTOTAL[fam] + '</span>');
         }
         foundEl.appendChild(slot);
@@ -1496,11 +1479,10 @@
       d.textContent = cfg.diff; d.className = "diffTag diff-" + cfg.diff;
       $("#introMoves").textContent = st.budget + " moves to clear the board";
       const fams = Object.keys(FAMTOTAL).map(fid => FAM[fid]);
-      $("#introFams").innerHTML = fams.map(f =>
-        '<span class="famChip"><i style="background:' + f.hue + '">' + svgIcon(f.icon, 2.2) + '</i>' + f.label + '</span>').join("");
       const feats = [];
-      fams.filter(f => f.seq).forEach(f => feats.push(
-        '<div style="color:#a4762a">' + svgIcon("steps") + '<span><b>Sequence:</b> ' + f.label + ' cards bank in one exact order, starting with the crown. Work out what comes next.</span></div>'));
+      const seqN = fams.filter(f => f.seq).length;
+      feats.push('<div style="color:#2f6fb2">' + svgIcon("crown") + '<span><b>' + fams.length + ' hidden categories.</b> Work out which cards belong together.</span></div>');
+      if(seqN) feats.push('<div style="color:#a4762a">' + svgIcon("steps") + '<span><b>' + seqN + ' sequence ' + (seqN > 1 ? "categories" : "category") + '.</b> Step-icon cards bank in one exact order, starting with the crown. Work out what comes next.</span></div>');
       if(cfg.locks) feats.push('<div style="color:#64788f">' + svgIcon("lock") + '<span><b>' + cfg.locks + ' locked card' + (cfg.locks>1?"s":"") + '.</b> Find the matching color key to open ' + (cfg.locks>1?"them":"it") + '.</span></div>');
       if(cfg.halves) feats.push('<div style="color:#2e8b8b">' + svgIcon("half") + '<span><b>' + cfg.halves + ' split card' + (cfg.halves>1?"s":"") + '.</b> Drag the matching half onto it before it can be banked.</span></div>');
       feats.push('<div style="color:#2f6fb2">' + svgIcon("wave") + '<span>Bank every family onto its crown to win.</span></div>');
@@ -1529,7 +1511,7 @@
       if(mv.kind === "unlock") gain += 5;
       if(mv.kind === "merge") gain += 5;
       const afterFams = Object.keys(FAMTOTAL).filter(f => (st.banked[f]||[]).length >= FAMTOTAL[f]);
-      afterFams.forEach(f => { if(beforeFams.indexOf(f) < 0){ gain += 10; setTimeout(() => toast(FAM[f].label + " complete! +10 coins"), 60); } });
+      afterFams.forEach(f => { if(beforeFams.indexOf(f) < 0){ gain += 10; setTimeout(() => toast("Pile complete! +10 coins"), 60); } });
       if(gain > 0) S.coins += gain;
       // feedback
       if(mv.kind === "bank" || mv.kind === "bankPile"){ buzz(14); sfx.place(); }
@@ -1580,10 +1562,10 @@
     function describeMove(st, mv){
       const cards = dragCards(st, mv.src).map(id => eff(st, id));
       const b = cards[0];
-      if(mv.kind === "bankPile") return "Drag the " + b.word + " crown into an empty top slot — its whole " + FAM[mv.fam].label + " pile comes with it";
+      if(mv.kind === "bankPile") return "Drag the " + b.word + " crown into an empty top slot — the pile under it comes along";
       if(mv.kind === "bank"){
         if(eff(st, dragCards(st, mv.src)[0]).kind === "crown") return "Drag the " + b.word + " crown into an empty top slot";
-        return "Bank “" + b.word + "” onto the " + FAM[mv.fam].label + " pile";
+        return "Bank “" + b.word + "” onto the glowing top pile";
       }
       if(mv.kind === "unlock") return "Drag the " + lockColor(st.locked[mv.lockCard]).name + " key onto its lock";
       if(mv.kind === "merge") return "Join the two halves of “" + b.word + "”";
@@ -1916,7 +1898,7 @@
     /* ================= wiring ================= */
     function buildHow(){
       const rows = [
-        ["crown", "#dfa92f", "Crown cards open foundations", "Drag a crown card — King, Ocean, Thousand — into an empty top slot. Then stack that family's cards onto it to bank them off the board. A crown can also sit on a pile of its own family in a column: drag it to an empty top slot and the whole pile moves with it, flipping so the crown lands underneath."],
+        ["crown", "#dfa92f", "Crown cards open foundations", "Drag a crown card (it has the gold crown badge) into an empty top slot. Then stack that family's cards onto it to bank them off the board. A crown can also sit on a pile of its own family in a column: drag it to an empty top slot and the whole pile moves with it, flipping so the crown lands underneath."],
         ["wave", "#2f6fb2", "Match families", "Cards of the same family stack onto each other in the columns. Build stacks to uncover the face-down cards beneath. A crown card takes no cards while it sits in a column — move it into a top slot first, then stack its family onto it there."],
         ["steps", "#dd7f2e", "Sequences go in exact order", "Cards with the step icon belong to a sequence family. They only land in their one natural order, starting with the crown — figuring out which card comes next is part of the puzzle."],
         ["key", "#c0453e", "Keys open locks", "A locked card can't move until its matching color key lands on it. Keys hide in the deck and under other cards — the little key on a card back means one is buried there."],
